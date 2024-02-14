@@ -4,7 +4,9 @@ import os
 import sys
 
 from control import Control
-from squeezebox import squeezebox_loop
+from remote import RemoteControl
+from squeezebox import SqueezeboxControl
+from display import image
 import asyncio
 
 # TODO:
@@ -30,9 +32,12 @@ async def main():
     args = parser.parse_args()
     logging.basicConfig(level=args.log)
 
-    control = Control()
+    ctl = Control()
+    remotectl = RemoteControl()
+    squeezectl = SqueezeboxControl()
     await asyncio.gather(
-        squeezebox_loop(),
+        squeezectl.loop(),
+        remotectl.loop(),
     )
 
 

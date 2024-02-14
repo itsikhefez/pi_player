@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 
 from pysqueezebox import Server, Player
+from display import image
 
 # TODO:
 # [] display integration
@@ -18,18 +19,23 @@ POLLING_SLEEP = 1
 DEFAULT_PLAYER = "ubuntu"
 
 
-class SqueezeboxControl():
+class SqueezeboxControl:
     lms: Server
     player: Player
-    
-    async def next():
 
-
-    async def squeezebox_loop():
-        # while True:
+    # async def next():
+    async def loop(self):
+        album_art_url = ""
         async with aiohttp.ClientSession() as session:
             lms = Server(session, LMS_SERVER_IP)
             player = await lms.async_get_player(name=DEFAULT_PLAYER)
-            await player.async_update()
-            print(f"{player.artist} - [{player.album}] {player.title} / {player.image_url}")
-            await asyncio.sleep(POLLING_SLEEP)
+            while True:
+                await player.async_update()
+                if album_art_url != player.image_url:
+                    album_art_url = player.image_url
+                    image(album_art_url)
+
+                print(
+                    f"{player.artist} - [{player.album}] {player.title} / {player.image_url}"
+                )
+                await asyncio.sleep(POLLING_SLEEP)
