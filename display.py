@@ -1,68 +1,46 @@
 import urllib.request
-from PIL import Image, ImageOps
-
-from luma.core import cmdline, error
-
-# --display=st7735
-# --interface=spi
-# --spi-bus-speed=32000000
-# --gpio-reset=24
-# --gpio-data-command=23
-# --gpio-backlight=18
-# --width=160
-# --height=128
-# --backlight-active=high
-# --gpio-reset-hold-time=0.1
-# --gpio-reset-release-time=0.1
+from PIL import Image, ImageOps, ImageFont
+from luma.core.render import canvas
+from luma.core.interface.serial import spi
+from luma.lcd.device import st7735
+from pathlib import Path
 
 
-def get_device():
-    parser = cmdline.create_parser(description="luma.examples arguments")
-    config = cmdline.load_config("/home/itsik/src/pi_player/st7735.conf")
-    args = parser.parse_args(config)
-    try:
-        device = cmdline.create_device(args)
-        print(display_settings(device, args))
-        return device
+class DisplayControl:
+    def __init__(self):
+        serial = spi(
+            gpio_DC=23,
+            gpio_RST=24,
+            bus_speed_hz=32000000,
+            reset_hold_time=0.1,
+            reset_release_time=0.1,
+        )
+        self.device = st7735(
+            serial_interface=serial, width=160, height=128, active_low=False, rotate=2
+        )
+        font_path = str(
+            Path(__file__).resolve().parent.joinpath("resources", "Hack-Regular.ttf")
+        )
+        self.font = ImageFont.truetype(font_path, 48)
 
-    except error.Error as e:
-        parser.error(e)
-        return None
+    def close(self):
+        self.device.cleanup()
 
+    def display_size(self):
+        return self.device.size
 
-def display_settings(device, args):
-    """
-    Display a short summary of the settings.
+    def album_art(self, url: str):
+        tmp_img_path = "img-tmp"
+        urllib.request.urlretrieve(url, tmp_img_path)
+        image = Image.open(tmp_img_path, formats=["JPEG", "PNG"])
+        image = ImageOps.pad(
+            ImageOps.contain(image, self.display_size()), self.display_size()
+        )
+        self.device.display(image)
+        image.close()
 
-    :rtype: str
-    """
-    iface = ""
-    display_types = cmdline.get_display_types()
-    if args.display not in display_types["emulator"]:
-        iface = f"Interface: {args.interface}\n"
-
-    lib_name = cmdline.get_library_for_display_type(args.display)
-    if lib_name is not None:
-        lib_version = cmdline.get_library_version(lib_name)
-    else:
-        lib_name = lib_version = "unknown"
-
-    import luma.core
-
-    version = f"luma.{lib_name} {lib_version} (luma.core {luma.core.__version__})"
-
-    return f'Version: {version}\nDisplay: {args.display}\n{iface}Dimensions: {device.width} x {device.height}\n{"-" * 60}'
-
-
-DISPLAY_SIZE = (160, 128)
-
-device = get_device()
-
-def image(url: str):
-    urllib.request.urlretrieve(url, "img-tmp")
-    # img_path = str(Path(__file__).resolve().parent.joinpath("images", "pi_logo.png"))
-    img_path = "img-tmp"
-    image = Image.open(img_path, formats=["JPEG"]).rotate(180)
-    image = ImageOps.pad(ImageOps.contain(image, DISPLAY_SIZE), DISPLAY_SIZE)
-    device.display(image)
-    image.close()
+    def show_volume(self, volume: float):
+        with canvas(self.device) as draw:
+            draw.text(
+                (0, 0), f"{volume}\ndB", font=self.font, fill="red", align="right"
+            )

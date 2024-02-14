@@ -2,12 +2,15 @@ import argparse
 import logging
 import os
 import sys
+import asyncio
+
+# import aioconsole
+# import tty
 
 from control import Control
+from display import DisplayControl
 from remote import RemoteControl
 from squeezebox import SqueezeboxControl
-from display import image
-import asyncio
 
 # TODO:
 # [] display integration
@@ -18,6 +21,15 @@ import asyncio
 # [] change input/mode -- TV/streamer/phono/cassette/Karaoke
 # [] remote control
 # [] rotary encoder for volume
+
+
+# async def echo():
+#     tty.setraw(sys.stdin.fileno())
+#     stdin, _ = await aioconsole.stream.get_standard_streams()
+#     while True:
+#         ch = await stdin.read(1)
+#         if ch == b"\x03":  # ctrl-c
+#             loop.stop()
 
 
 async def main():
@@ -33,12 +45,14 @@ async def main():
     logging.basicConfig(level=args.log)
 
     ctl = Control()
+    displayctl = DisplayControl()
     remotectl = RemoteControl()
-    squeezectl = SqueezeboxControl()
+    squeezectl = SqueezeboxControl(displayctl=displayctl)
     await asyncio.gather(
         squeezectl.loop(),
         remotectl.loop(),
     )
+    displayctl.close()
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 import aiohttp
 import asyncio
+import logging
 
 from pysqueezebox import Server, Player
-from display import image
+from display import DisplayControl
 
 # TODO:
 # [] display integration
@@ -20,8 +21,8 @@ DEFAULT_PLAYER = "ubuntu"
 
 
 class SqueezeboxControl:
-    lms: Server
-    player: Player
+    def __init__(self, displayctl: DisplayControl):
+        self.displayctl = displayctl
 
     # async def next():
     async def loop(self):
@@ -33,9 +34,10 @@ class SqueezeboxControl:
                 await player.async_update()
                 if album_art_url != player.image_url:
                     album_art_url = player.image_url
-                    image(album_art_url)
+                    self.displayctl.album_art(album_art_url)
+                    # self.displayctl.show_volume(volume=-40)
 
-                print(
+                logging.debug(
                     f"{player.artist} - [{player.album}] {player.title} / {player.image_url}"
                 )
                 await asyncio.sleep(POLLING_SLEEP)
