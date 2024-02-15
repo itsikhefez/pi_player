@@ -30,6 +30,7 @@ class SqueezeboxControl:
         async with aiohttp.ClientSession() as session:
             lms = Server(session, LMS_SERVER_IP)
             player = await lms.async_get_player(name=DEFAULT_PLAYER)
+            logging.info("started squeezebox listener...")
             while True:
                 await player.async_update()
                 if album_art_url != player.image_url:

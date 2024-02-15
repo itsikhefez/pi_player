@@ -1,10 +1,11 @@
 import asyncio
 import logging
+import throttler
 
 from typing import Dict, List
 from enum import Enum
 from camilladsp import CamillaClient, CamillaError
-
+from display import DisplayControl
 
 # TODO:
 # [] display integration
@@ -48,13 +49,8 @@ DIM_STEP: float = 20.0
 
 
 class Control:
-    cdsp_client: CamillaClient
-    input: int
-    input_mode: InputMode
-    volume: float = -40
-    dim: int = 1
-
-    def __init__(self):
+    def __init__(self, displayctl: DisplayControl):
+        self.displayctl = displayctl
         self.cdsp_client = CamillaClient("127.0.0.1", 1234)
         self.cdsp_client.connect()
 
@@ -66,7 +62,8 @@ class Control:
                 if config_path == filepath:
                     self.input = i
                     self.input_mode = j
-
+        self.volume: float = -40.0
+        self.dim: int = 1
         self.cdsp_client.volume.set_main(self.volume)
         logging.info(
             "cdsp connected. input: %d, mode: %d, volume: %f",
@@ -88,7 +85,7 @@ class Control:
         self.cdsp_client.general.reload()
 
     async def volume_step(self, volume_step: float) -> None:
-        next_volume = self.volume + volume_step
+        next_volume = round(self.volume + volume_step, 1)
         next_volume = max(MIN_VOLUME, min(MAX_VOLUME, next_volume))
         if next_volume == self.volume:
             return
@@ -96,6 +93,8 @@ class Control:
         logging.info("volume_step. set volume to = %f", next_volume)
         self.cdsp_client.volume.set_main(next_volume)
         self.volume = next_volume
+
+        self.displayctl.show_volume(self.volume)
 
     async def volume_dim(self) -> None:
         self.dim = -1 * self.dim

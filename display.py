@@ -1,4 +1,6 @@
+import logging
 import urllib.request
+
 from PIL import Image, ImageOps, ImageFont
 from luma.core.render import canvas
 from luma.core.interface.serial import spi
@@ -30,17 +32,20 @@ class DisplayControl:
         return self.device.size
 
     def album_art(self, url: str):
-        tmp_img_path = "img-tmp"
-        urllib.request.urlretrieve(url, tmp_img_path)
-        image = Image.open(tmp_img_path, formats=["JPEG", "PNG"])
-        image = ImageOps.pad(
-            ImageOps.contain(image, self.display_size()), self.display_size()
-        )
-        self.device.display(image)
-        image.close()
+        try:
+            img_tmp_path = "img-tmp"
+            urllib.request.urlretrieve(url, img_tmp_path)
+            image = Image.open(img_tmp_path, formats=["JPEG"])
+            image = ImageOps.pad(
+                ImageOps.contain(image, self.display_size()), self.display_size()
+            )
+            self.device.display(image)
+            image.close()
+        except Exception as e:
+            logging.error("%s, %s", e, url)
 
     def show_volume(self, volume: float):
         with canvas(self.device) as draw:
             draw.text(
-                (0, 0), f"{volume}\ndB", font=self.font, fill="red", align="right"
+                (0, 0), f"{volume}\ndB", font=self.font, fill="green", align="right"
             )

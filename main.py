@@ -44,9 +44,9 @@ async def main():
     args = parser.parse_args()
     logging.basicConfig(level=args.log)
 
-    ctl = Control()
     displayctl = DisplayControl()
-    remotectl = RemoteControl()
+    ctl = Control(displayctl=displayctl)
+    remotectl = RemoteControl(ctl=ctl)
     squeezectl = SqueezeboxControl(displayctl=displayctl)
     await asyncio.gather(
         squeezectl.loop(),
