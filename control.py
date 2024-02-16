@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import throttler
 
 from typing import Dict, List
 from enum import Enum
@@ -19,7 +18,7 @@ from display import DisplayControl
 # rotary encoder for volume
 
 
-class InputMode:
+class InputMode(Enum):
     DIRECT = 0
     EQ = 1
     EQ_ALT = 2
@@ -36,16 +35,56 @@ class Input:
 
 INPUTS = [
     # configs for DIRECT, EQ, EQ_ALT
-    Input(name="TV", configs=["", "ucx2_toslink_48c_48p.yaml", ""]),
-    Input(name="Phono", configs=["", "ucx2_analog_48c_48p.yaml", ""]),
-    Input(name="Tape", configs=["", "ucx2_analog_48c_48p.yaml", ""]),
-    Input(name="Digital", configs=["", "ucx2_streamer_44c_44p_MP.yaml", ""]),
+    Input(
+        name="TV",
+        configs=[
+            "ucx2_toslink_48c_48p.yaml",
+            "ucx2_toslink_48c_48p.yaml",
+            "ucx2_toslink_48c_48p.yaml",
+        ],
+    ),
+    Input(
+        name="Phono",
+        configs=[
+            "ucx2_toslink_48c_48p.yaml",
+            "ucx2_analog_48c_48p.yaml",
+            "ucx2_toslink_48c_48p.yaml",
+        ],
+    ),
+    Input(
+        name="Tape",
+        configs=[
+            "ucx2_toslink_48c_48p.yaml",
+            "ucx2_analog_48c_48p.yaml",
+            "ucx2_toslink_48c_48p.yaml",
+        ],
+    ),
+    Input(
+        name="Digital",
+        configs=[
+            "ucx2_toslink_48c_48p.yaml",
+            "ucx2_streamer_44c_44p_MP.yaml",
+            "ucx2_toslink_48c_48p.yaml",
+        ],
+    ),
 ]
 
 CAMILLADSP_CONFIGS_PATH = "/home/itsik/camilladsp/configs/"
 MIN_VOLUME: float = -50.0
 MAX_VOLUME: float = 0.0
 DIM_STEP: float = 20.0
+
+
+class State:
+    def __init__(self, input, input_mode, display_mode=None):
+        self.input = input
+        self.input_mode = input_mode
+        self.volume: float = -40.0
+        self.dim: int = 1
+        self.display_mode = display_mode
+
+    def __str__(self) -> str:
+        return f"input:{INPUTS[self.input].name:>7}, input_mode:{self.input_mode}, vol:{self.volume}, disp:{self.display_mode}"
 
 
 class Control:
@@ -60,47 +99,54 @@ class Control:
         for i, input in enumerate(INPUTS):
             for j, filepath in enumerate(input.configs):
                 if config_path == filepath:
-                    self.input = i
-                    self.input_mode = j
-        self.volume: float = -40.0
-        self.dim: int = 1
-        self.cdsp_client.volume.set_main(self.volume)
-        logging.info(
-            "cdsp connected. input: %d, mode: %d, volume: %f",
-            self.input,
-            self.input_mode,
-            self.volume,
+                    current_input = i
+                    input_mode = InputMode(j)
+
+        self.state = State(current_input, input_mode)
+        self.cdsp_client.volume.set_main(self.state.volume)
+        logging.info("cdsp connected. %s", self.state)
+
+    async def change_input_mode(self, mode: InputMode) -> None:
+        self.state.input_mode = (
+            InputMode.DIRECT if (self.state.input_mode == mode) else mode
         )
+        await self.apply_input_state()
 
-    async def change_input(self, prev: bool = False) -> None:
+    async def change_input(self, input: int) -> None:
+        assert input >= 0 and input < len(INPUTS)
+        self.state.input = input
+        await self.apply_input_state()
+
+    async def next_input(self, prev: bool = False) -> None:
         if prev:
-            self.input = self.input - 1
+            input = self.state.input - 1
         else:
-            self.input = self.input + 1
-        self.input = self.input % len(INPUTS)
-        path = f"{CAMILLADSP_CONFIGS_PATH}{INPUTS[self.input].configs[self.input_mode]}"
+            input = self.state.input + 1
+        self.state.input = input % len(INPUTS)
+        await self.apply_input_state()
 
-        logging.info("change_input to %s, path %s", self.input, path)
+    async def apply_input_state(self):
+        path = f"{CAMILLADSP_CONFIGS_PATH}{INPUTS[self.state.input].configs[self.state.input_mode.value]}"
+        logging.info("apply_input_state. %s. %s", self.state, path)
         self.cdsp_client.config.set_file_path(path)
         self.cdsp_client.general.reload()
 
     async def volume_step(self, volume_step: float) -> None:
-        next_volume = round(self.volume + volume_step, 1)
+        next_volume = round(self.state.volume + volume_step, 1)
         next_volume = max(MIN_VOLUME, min(MAX_VOLUME, next_volume))
-        if next_volume == self.volume:
+        if next_volume == self.state.volume:
             return
 
         logging.info("volume_step. set volume to = %f", next_volume)
         self.cdsp_client.volume.set_main(next_volume)
-        self.volume = next_volume
-
-        self.displayctl.show_volume(self.volume)
+        self.state.volume = next_volume
+        self.displayctl.show_volume(self.state.volume)
 
     async def volume_dim(self) -> None:
-        self.dim = -1 * self.dim
-        volume_step = self.dim * DIM_STEP
+        self.state.dim = -1 * self.state.dim
+        volume_step = self.state.dim * DIM_STEP
         logging.info("volume_dim. volume step = %f", volume_step)
-        await self.change_volume(volume_step=volume_step)
+        await self.volume_step(volume_step=volume_step)
 
     async def mute(self) -> None:
         return None

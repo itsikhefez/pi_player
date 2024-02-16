@@ -2,7 +2,8 @@ import evdev
 import logging
 
 from enum import Enum, auto
-from control import Control
+from control import Control, InputMode
+from throttle import Debounce, TokenBucket
 
 """
 Remote control functionality
@@ -55,8 +56,8 @@ KEYMAP = {
     0x10015: RemoteButton.POWER,
     0x10000: RemoteButton.ONE,
     0x10001: RemoteButton.TWO,
-    0x10002: RemoteButton.THREE,
-    0x10003: RemoteButton.FOUR,
+    0x10012: RemoteButton.THREE,
+    0x10013: RemoteButton.FOUR,
     0x10004: RemoteButton.FIVE,
     0x10005: RemoteButton.SIX,
     0x10006: RemoteButton.SEVEN,
@@ -75,8 +76,8 @@ KEYMAP = {
     0x1F000: RemoteButton.STOP,
     0x1F000: RemoteButton.PREV,
     0x1F000: RemoteButton.NEXT,
-    0x1F000: RemoteButton.MEGA_XPAND,
-    0x1F000: RemoteButton.MEGA_BASS,
+    0x10002: RemoteButton.MEGA_XPAND,
+    0x10003: RemoteButton.MEGA_BASS,
 }
 
 
@@ -84,6 +85,8 @@ class RemoteControl:
     device: evdev.InputDevice
 
     def __init__(self, ctl: Control):
+        self.button_throttle = Debounce(0.2)
+        self.volume_throttle = TokenBucket(1, 0.3)
         self.device = evdev.InputDevice(INPUT_DEVICE)
         self.ctl = ctl
         logging.info(self.device)
@@ -99,10 +102,30 @@ class RemoteControl:
                 logging.info("unrecognized remote button %s", hex(code))
                 continue
 
-            match button:
-                case RemoteButton.VOL_UP:
-                    await self.ctl.volume_step(0.5)
-                case RemoteButton.VOL_DOWN:
-                    await self.ctl.volume_step(-0.5)
-                case _:
-                    print(f"{button} not assigned to any function")
+            await self.handle_keypress(button)
+
+    async def handle_keypress(self, button: int) -> None:
+        if button in (RemoteButton.VOL_UP, RemoteButton.VOL_DOWN):
+            if not self.volume_throttle.has_tokens():
+                return
+        else:
+            if not self.button_throttle.has_tokens():
+                return
+
+        match button:
+            case RemoteButton.ONE:
+                await self.ctl.next_input(prev=True)
+            case RemoteButton.TWO:
+                await self.ctl.next_input()
+            case RemoteButton.VOL_UP:
+                await self.ctl.volume_step(3.0)
+            case RemoteButton.VOL_DOWN:
+                await self.ctl.volume_step(-3.0)
+            case RemoteButton.TWO:
+                await self.ctl.next_input()
+            case RemoteButton.MEGA_BASS:
+                await self.ctl.change_input_mode(mode=InputMode.EQ)
+            case RemoteButton.MEGA_XPAND:
+                await self.ctl.change_input_mode(mode=InputMode.EQ_ALT)
+            case _:
+                print(f"{button} not assigned to any function")
