@@ -3,10 +3,12 @@ import logging
 import os
 import sys
 import asyncio
+import yaml
 
 # import aioconsole
 # import tty
 
+from pathlib import Path
 from control import Control
 from display import DisplayControl
 from remote import RemoteControl
@@ -44,9 +46,13 @@ async def main():
     args = parser.parse_args()
     logging.basicConfig(level=args.log)
 
-    displayctl = DisplayControl()
+    cwd = Path(__file__).resolve().parent
+    config_path = cwd.joinpath("config.yaml")
+    config = yaml.safe_load(config_path.read_text())
+
+    displayctl = DisplayControl(config["display"], cwd)
     ctl = Control(displayctl=displayctl)
-    remotectl = RemoteControl(ctl=ctl)
+    remotectl = RemoteControl(ctl=ctl, displayctl=displayctl)
     squeezectl = SqueezeboxControl(displayctl=displayctl)
     await asyncio.gather(
         squeezectl.loop(),

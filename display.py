@@ -8,8 +8,13 @@ from luma.lcd.device import st7735
 from pathlib import Path
 
 
+class DisplayMode:
+    def render():
+        pass
+
+
 class DisplayControl:
-    def __init__(self):
+    def __init__(self, config, cwd: Path = None):
         serial = spi(
             gpio_DC=23,
             gpio_RST=24,
@@ -20,10 +25,12 @@ class DisplayControl:
         self.device = st7735(
             serial_interface=serial, width=160, height=128, active_low=False, rotate=2
         )
-        font_path = str(
-            Path(__file__).resolve().parent.joinpath("resources", "Hack-Regular.ttf")
-        )
+        font_path = str(cwd.joinpath("resources", "Hack-Regular.ttf"))
         self.font = ImageFont.truetype(font_path, 48)
+        self.image_gallery = [
+            cwd.joinpath("resources", f) for f in config["image_gallery"]
+        ]
+        self.gallery_index = 0
 
     def close(self):
         self.device.cleanup()
@@ -32,17 +39,27 @@ class DisplayControl:
         return self.device.size
 
     def album_art(self, url: str):
+        img_tmp_path = "img-tmp"
+        urllib.request.urlretrieve(url, img_tmp_path)
+        self.show_image(path=img_tmp_path)
+
+    def show_image(self, path: str, stretch=False) -> None:
         try:
-            img_tmp_path = "img-tmp"
-            urllib.request.urlretrieve(url, img_tmp_path)
-            image = Image.open(img_tmp_path, formats=["JPEG"])
-            image = ImageOps.pad(
-                ImageOps.contain(image, self.display_size()), self.display_size()
-            )
+            image = Image.open(path, formats=["JPEG"])
+            if not stretch:
+                image = ImageOps.pad(
+                    ImageOps.contain(image, self.display_size()), self.display_size()
+                )
+            else:
+                image = image.resize(self.display_size())
             self.device.display(image)
             image.close()
         except Exception as e:
-            logging.error("%s, %s", e, url)
+            logging.error("%s, %s", e, path)
+
+    def scroll_gallery(self) -> None:
+        self.show_image(self.image_gallery[self.gallery_index], stretch=True)
+        self.gallery_index = (self.gallery_index + 1) % len(self.image_gallery)
 
     def show_volume(self, volume: float):
         with canvas(self.device) as draw:

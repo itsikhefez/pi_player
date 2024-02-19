@@ -67,10 +67,18 @@ INPUTS = [
             "ucx2_toslink_48c_48p.yaml",
         ],
     ),
+    Input(
+        name="Karaoke",
+        configs=[
+            "ucx2_toslink_48c_48p.yaml",
+            "ucx2_streamer_44c_44p_MP.yaml",
+            "ucx2_toslink_48c_48p.yaml",
+        ],
+    ),
 ]
 
 CAMILLADSP_CONFIGS_PATH = "/home/itsik/camilladsp/configs/"
-MIN_VOLUME: float = -50.0
+MIN_VOLUME: float = -80.0
 MAX_VOLUME: float = 0.0
 DIM_STEP: float = 20.0
 
@@ -131,7 +139,9 @@ class Control:
         self.cdsp_client.config.set_file_path(path)
         self.cdsp_client.general.reload()
 
-    async def volume_step(self, volume_step: float) -> None:
+    async def volume_step(self, volume_step: float, reset_dim: bool = True) -> None:
+        if reset_dim:
+            self.state.dim = 1
         next_volume = round(self.state.volume + volume_step, 1)
         next_volume = max(MIN_VOLUME, min(MAX_VOLUME, next_volume))
         if next_volume == self.state.volume:
@@ -145,8 +155,8 @@ class Control:
     async def volume_dim(self) -> None:
         self.state.dim = -1 * self.state.dim
         volume_step = self.state.dim * DIM_STEP
-        logging.info("volume_dim. volume step = %f", volume_step)
-        await self.volume_step(volume_step=volume_step)
+        logging.info("volume_dim. %d", self.state.dim)
+        await self.volume_step(volume_step=volume_step, reset_dim=False)
 
     async def mute(self) -> None:
         return None
