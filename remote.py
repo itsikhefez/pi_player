@@ -1,7 +1,6 @@
 import evdev
 import logging
 
-from display import DisplayControl
 from enum import Enum, auto
 from control import Control, InputMode
 from throttle import Debounce, TokenBucket
@@ -87,12 +86,11 @@ KEYMAP = {
 
 
 class RemoteControl:
-    def __init__(self, ctl: Control, displayctl: DisplayControl):
+    def __init__(self, ctl: Control):
         self.button_throttle = Debounce(0.15)
         self.volume_throttle = TokenBucket(1, 0.3)
         self.device = evdev.InputDevice(INPUT_DEVICE)
         self.ctl = ctl
-        self.displayctl = displayctl
         logging.info(self.device)
 
         # import RPi.GPIO as GPIO
@@ -129,7 +127,7 @@ class RemoteControl:
             case RemoteButton.SLEEP:
                 print("SLEEP")
             case RemoteButton.POWER:
-                self.displayctl.scroll_gallery()
+                await self.ctl.set_display_mode(self.ctl.image_gallery.scroll_gallery())
             case RemoteButton.ONE:
                 await self.ctl.change_input(0)
             case RemoteButton.TWO:

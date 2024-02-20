@@ -1,5 +1,4 @@
 import logging
-import urllib.request
 
 from PIL import Image, ImageOps, ImageFont
 from luma.core.render import canvas
@@ -8,13 +7,8 @@ from luma.lcd.device import st7735
 from pathlib import Path
 
 
-class DisplayMode:
-    def render():
-        pass
-
-
 class DisplayControl:
-    def __init__(self, config, cwd: Path = None):
+    def __init__(self, cwd: Path = None):
         serial = spi(
             gpio_DC=23,
             gpio_RST=24,
@@ -27,21 +21,12 @@ class DisplayControl:
         )
         font_path = str(cwd.joinpath("resources", "Hack-Regular.ttf"))
         self.font = ImageFont.truetype(font_path, 48)
-        self.image_gallery = [
-            cwd.joinpath("resources", f) for f in config["image_gallery"]
-        ]
-        self.gallery_index = 0
 
     def close(self):
         self.device.cleanup()
 
     def display_size(self):
         return self.device.size
-
-    def album_art(self, url: str):
-        img_tmp_path = "img-tmp"
-        urllib.request.urlretrieve(url, img_tmp_path)
-        self.show_image(path=img_tmp_path)
 
     def show_image(self, path: str, stretch=False) -> None:
         try:

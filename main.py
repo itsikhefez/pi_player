@@ -50,10 +50,10 @@ async def main():
     config_path = cwd.joinpath("config.yaml")
     config = yaml.safe_load(config_path.read_text())
 
-    displayctl = DisplayControl(config["display"], cwd)
-    ctl = Control(displayctl=displayctl)
-    remotectl = RemoteControl(ctl=ctl, displayctl=displayctl)
-    squeezectl = SqueezeboxControl(displayctl=displayctl)
+    displayctl = DisplayControl(cwd)
+    ctl = Control(cwd, config, displayctl)
+    remotectl = RemoteControl(ctl)
+    squeezectl = SqueezeboxControl(ctl)
     await asyncio.gather(
         squeezectl.loop(),
         remotectl.loop(),

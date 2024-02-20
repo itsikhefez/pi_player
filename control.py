@@ -1,10 +1,12 @@
 import asyncio
 import logging
 
+from pathlib import Path
 from typing import Dict, List
 from enum import Enum
 from camilladsp import CamillaClient, CamillaError
 from display import DisplayControl
+from display_modes import DisplayMode, AlbumArtDisplayMode, ImageGalleryDisplayMode
 
 # TODO:
 # [] display integration
@@ -83,6 +85,35 @@ MAX_VOLUME: float = 0.0
 DIM_STEP: float = 20.0
 
 
+class SongState:
+    def __init__(
+        self,
+        album: str = None,
+        artist: str = None,
+        title: str = None,
+        elapsed: int = 0,
+        length: int = 0,
+        bitrate: int = 0,
+        format: str = None,
+        image_url: str = None,
+    ):
+        self.album = album
+        self.artist = artist
+        self.song = title
+        self.elapsed = elapsed
+        self.length = length
+        self.bitrate = bitrate
+        self.format = format
+        self.image_url = image_url
+
+    def __eq__(self, other) -> bool:
+        return (
+            self.album == other.album
+            and self.artist == other.artist
+            and self.song == other.song
+        )
+
+
 class State:
     def __init__(self, input, input_mode, display_mode=None):
         self.input = input
@@ -96,10 +127,13 @@ class State:
 
 
 class Control:
-    def __init__(self, displayctl: DisplayControl):
+    def __init__(self, cwd: Path, config: dict, displayctl: DisplayControl):
         self.displayctl = displayctl
         self.cdsp_client = CamillaClient("127.0.0.1", 1234)
         self.cdsp_client.connect()
+        self.display_mode: DisplayMode = None
+        self.pending_task = None
+        self.image_gallery = ImageGalleryDisplayMode(cwd, config["image_gallery"])
 
         config_path = self.cdsp_client.config.file_path().removeprefix(
             CAMILLADSP_CONFIGS_PATH
@@ -140,6 +174,9 @@ class Control:
         self.cdsp_client.general.reload()
 
     async def volume_step(self, volume_step: float, reset_dim: bool = True) -> None:
+        if self.pending_task:
+            self.pending_task.cancel()
+
         if reset_dim:
             self.state.dim = 1
         next_volume = round(self.state.volume + volume_step, 1)
@@ -152,6 +189,16 @@ class Control:
         self.state.volume = next_volume
         self.displayctl.show_volume(self.state.volume)
 
+        # TODO: change to decorate for other funcs
+        async def revert_display(displayctl: DisplayControl):
+            try:
+                await asyncio.sleep(5)
+                await self.display_mode.render(displayctl)
+            except asyncio.CancelledError:
+                pass
+
+        self.pending_task = asyncio.create_task(revert_display(self.displayctl))
+
     async def volume_dim(self) -> None:
         self.state.dim = -1 * self.state.dim
         volume_step = self.state.dim * DIM_STEP
@@ -160,3 +207,11 @@ class Control:
 
     async def mute(self) -> None:
         return None
+
+    async def update_song_state(self, song_state: SongState) -> None:
+        self.display_mode = AlbumArtDisplayMode(url=song_state.image_url)
+        await self.display_mode.render(self.displayctl)
+
+    async def set_display_mode(self, display_mode: DisplayMode) -> None:
+        await display_mode.render(self.displayctl)
+        self.display_mode = display_mode

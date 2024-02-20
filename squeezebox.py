@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 from pysqueezebox import Server, Player
-from display import DisplayControl
+from control import Control, SongState
 
 # TODO:
 # [] display integration
@@ -21,11 +21,12 @@ DEFAULT_PLAYER = "ubuntu"
 
 
 class SqueezeboxControl:
-    def __init__(self, displayctl: DisplayControl):
-        self.displayctl = displayctl
+    def __init__(self, ctl: Control) -> None:
+        self.ctl = ctl
 
     # async def next():
     async def loop(self):
+        curr_song_state = SongState()
         album_art_url = ""
         async with aiohttp.ClientSession() as session:
             lms = Server(session, LMS_SERVER_IP)
@@ -33,10 +34,15 @@ class SqueezeboxControl:
             logging.info("started squeezebox listener...")
             while True:
                 await player.async_update()
-                if album_art_url != player.image_url:
-                    album_art_url = player.image_url
-                    self.displayctl.album_art(album_art_url)
-                    # self.displayctl.show_volume(volume=-40)
+                song_state = SongState(
+                    album=player.album,
+                    artist=player.artist,
+                    title=player.title,
+                    image_url=player.image_url,
+                )
+                if curr_song_state != song_state:
+                    curr_song_state = song_state
+                    await self.ctl.update_song_state(song_state)
 
                 logging.debug(
                     f"{player.artist} - [{player.album}] {player.title} / {player.image_url}"
