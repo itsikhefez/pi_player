@@ -3,7 +3,7 @@ import logging
 
 from pathlib import Path
 from typing import Dict, List
-from enum import Enum
+from enum import Enum, auto
 from camilladsp import CamillaClient, CamillaError
 from display import DisplayControl
 from display_modes import DisplayMode, AlbumArtDisplayMode, ImageGalleryDisplayMode
@@ -113,6 +113,9 @@ class SongState:
             and self.song == other.song
         )
 
+    def __str__(self) -> str:
+        return f"{self.artist}|{self.album}|{self.song}|{self.bitrate}|{self.format}"
+
 
 class State:
     def __init__(self, input, input_mode, display_mode=None):
@@ -127,7 +130,12 @@ class State:
 
 
 class Control:
-    def __init__(self, cwd: Path, config: dict, displayctl: DisplayControl):
+    def __init__(
+        self,
+        cwd: Path,
+        config: dict,
+        displayctl: DisplayControl,
+    ):
         self.displayctl = displayctl
         self.cdsp_client = CamillaClient("127.0.0.1", 1234)
         self.cdsp_client.connect()
@@ -209,6 +217,7 @@ class Control:
         return None
 
     async def update_song_state(self, song_state: SongState) -> None:
+        logging.info("update_song_state. %s", song_state)
         self.display_mode = AlbumArtDisplayMode(url=song_state.image_url)
         await self.display_mode.render(self.displayctl)
 

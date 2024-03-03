@@ -3,6 +3,7 @@ import logging
 
 from enum import Enum, auto
 from control import Control, InputMode
+from media_player import MediaPlayerControl, MediaPlayerOp
 from throttle import Debounce, TokenBucket
 
 """
@@ -86,16 +87,13 @@ KEYMAP = {
 
 
 class RemoteControl:
-    def __init__(self, ctl: Control):
+    def __init__(self, ctl: Control, mediactl: MediaPlayerControl):
         self.button_throttle = Debounce(0.15)
         self.volume_throttle = TokenBucket(1, 0.3)
         self.device = evdev.InputDevice(INPUT_DEVICE)
         self.ctl = ctl
+        self.mediactl = mediactl
         logging.info(self.device)
-
-        # import RPi.GPIO as GPIO
-        # GPIO.setup(27, GPIO.OUT)
-        # GPIO.output(27, GPIO.HIGH)
 
     async def loop(self):
         logging.info("started remote event listener...")
@@ -121,6 +119,7 @@ class RemoteControl:
         if not self.has_tokens(button):
             return
 
+        logging.info("handle_keypress. %s", button)
         match button:
             case RemoteButton.FUNCTION:
                 print("FUNCTION")
@@ -163,17 +162,17 @@ class RemoteControl:
             case RemoteButton.VOL_DOWN:
                 await self.ctl.volume_step(-3.0)
             case RemoteButton.PLAY:
-                print("PLAY")
+                await self.mediactl.op(MediaPlayerOp.PLAY)
             case RemoteButton.PAUSE:
-                print("PAUSE")
+                await self.mediactl.op(MediaPlayerOp.PAUSE)
             case RemoteButton.STOP:
-                print("STOP")
+                await self.mediactl.op(MediaPlayerOp.STOP)
             case RemoteButton.PREV:
-                print("PREV")
+                await self.mediactl.op(MediaPlayerOp.PREV)
             case RemoteButton.HOLD_PREV:
                 print("HOLD_PREV")
             case RemoteButton.NEXT:
-                print("NEXT")
+                await self.mediactl.op(MediaPlayerOp.NEXT)
             case RemoteButton.HOLD_NEXT:
                 print("HOLD_NEXT")
             case RemoteButton.MEGA_XPAND:

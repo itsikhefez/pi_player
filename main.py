@@ -7,7 +7,6 @@ import yaml
 
 # import aioconsole
 # import tty
-
 from pathlib import Path
 from control import Control
 from display import DisplayControl
@@ -16,22 +15,9 @@ from squeezebox import SqueezeboxControl
 
 # TODO:
 # [] display integration
-# [] volume
 # [] streamer mode:
 #    [] song artist/title
-#    [] album art
-# [] change input/mode -- TV/streamer/phono/cassette/Karaoke
-# [] remote control
 # [] rotary encoder for volume
-
-
-# async def echo():
-#     tty.setraw(sys.stdin.fileno())
-#     stdin, _ = await aioconsole.stream.get_standard_streams()
-#     while True:
-#         ch = await stdin.read(1)
-#         if ch == b"\x03":  # ctrl-c
-#             loop.stop()
 
 
 async def main():
@@ -52,8 +38,8 @@ async def main():
 
     displayctl = DisplayControl(cwd)
     ctl = Control(cwd, config, displayctl)
-    remotectl = RemoteControl(ctl)
     squeezectl = SqueezeboxControl(ctl)
+    remotectl = RemoteControl(ctl, mediactl=squeezectl)
     await asyncio.gather(
         squeezectl.loop(),
         remotectl.loop(),
