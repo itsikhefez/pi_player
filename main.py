@@ -14,10 +14,10 @@ from remote import RemoteControl
 from squeezebox import SqueezeboxControl
 
 # TODO:
-# [] display integration
+# [] OLED display integration
 # [] streamer mode:
 #    [] song artist/title
-# [] rotary encoder for volume
+# [] rotary encoder for volume / input
 
 
 async def main():
@@ -36,7 +36,7 @@ async def main():
     config_path = cwd.joinpath("config.yaml")
     config = yaml.safe_load(config_path.read_text())
 
-    displayctl = DisplayControl(cwd)
+    displayctl = DisplayControl()
     ctl = Control(cwd, config, displayctl)
     squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
     remotectl = RemoteControl(ctl, mediactl=squeezectl)

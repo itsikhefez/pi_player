@@ -91,8 +91,8 @@ class SqueezeboxControl:
             while True:
                 for coro in asyncio.as_completed(
                     [
-                        self.player_update(player),
                         self.handle_op(player),
+                        self.player_update(player),
                     ]
                 ):
                     await coro

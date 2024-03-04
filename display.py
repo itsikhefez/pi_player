@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class DisplayControl:
-    def __init__(self, cwd: Path = None):
+    def __init__(self):
         serial = spi(
             gpio_DC=23,
             gpio_RST=24,
@@ -27,18 +27,16 @@ class DisplayControl:
         return self.device.size
 
     def show_image(self, path: str, stretch=False) -> None:
-        try:
-            image = Image.open(path, formats=["JPEG"])
-            if not stretch:
-                image = ImageOps.pad(
-                    ImageOps.contain(image, self.display_size()), self.display_size()
-                )
-            else:
-                image = image.resize(self.display_size())
-            self.device.display(image)
-            image.close()
-        except Exception as e:
-            logging.error("%s, %s", e, path)
+        image = Image.open(path, formats=["JPEG", "PNG"]).convert("RGB")
+        if not stretch:
+            image = ImageOps.pad(
+                ImageOps.contain(image, self.display_size()), self.display_size()
+            )
+        else:
+            image = image.resize(self.display_size())
+
+        self.device.display(image)
+        image.close()
 
     def get_canvas(self) -> canvas:
         return canvas(self.device)
