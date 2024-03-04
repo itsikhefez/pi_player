@@ -6,7 +6,12 @@ from typing import Dict, List
 from enum import Enum, auto
 from camilladsp import CamillaClient, CamillaError
 from display import DisplayControl
-from display_modes import DisplayMode, AlbumArtDisplayMode, ImageGalleryDisplayMode
+from display_modes import (
+    DisplayMode,
+    AlbumArtDisplayMode,
+    ImageGalleryDisplayMode,
+    VolumeDisplayMode,
+)
 
 # TODO:
 # [] display integration
@@ -192,10 +197,10 @@ class Control:
         if next_volume == self.state.volume:
             return
 
-        logging.info("volume_step. set volume to = %f", next_volume)
+        logging.info("volume_step. %.2fdB", next_volume)
         self.cdsp_client.volume.set_main(next_volume)
         self.state.volume = next_volume
-        self.displayctl.show_volume(self.state.volume)
+        await VolumeDisplayMode(self.state.volume).render(self.displayctl)
 
         # TODO: change to decorate for other funcs
         async def revert_display(displayctl: DisplayControl):

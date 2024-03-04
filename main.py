@@ -38,7 +38,7 @@ async def main():
 
     displayctl = DisplayControl(cwd)
     ctl = Control(cwd, config, displayctl)
-    squeezectl = SqueezeboxControl(ctl)
+    squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
     remotectl = RemoteControl(ctl, mediactl=squeezectl)
     await asyncio.gather(
         squeezectl.loop(),

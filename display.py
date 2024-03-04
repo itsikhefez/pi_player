@@ -19,8 +19,6 @@ class DisplayControl:
         self.device = st7735(
             serial_interface=serial, width=160, height=128, active_low=False, rotate=2
         )
-        font_path = str(cwd.joinpath("resources", "Hack-Regular.ttf"))
-        self.font = ImageFont.truetype(font_path, 48)
 
     def close(self):
         self.device.cleanup()
@@ -42,12 +40,5 @@ class DisplayControl:
         except Exception as e:
             logging.error("%s, %s", e, path)
 
-    def scroll_gallery(self) -> None:
-        self.show_image(self.image_gallery[self.gallery_index], stretch=True)
-        self.gallery_index = (self.gallery_index + 1) % len(self.image_gallery)
-
-    def show_volume(self, volume: float):
-        with canvas(self.device) as draw:
-            draw.text(
-                (0, 0), f"{volume}\ndB", font=self.font, fill="green", align="right"
-            )
+    def get_canvas(self) -> canvas:
+        return canvas(self.device)
