@@ -10,18 +10,12 @@ from display_modes import (
     DisplayMode,
     AlbumArtDisplayMode,
     ImageGalleryDisplayMode,
+    MediaPlayerDisplayMode,
     VolumeDisplayMode,
 )
+from song_state import SongState
 
 # TODO:
-# [] display integration
-# [] volume
-# [] streamer mode:
-#    [] song artist/title
-#    [] album art
-# [] change input/mode -- TV/streamer/phono/cassette/Karaoke
-
-# [] remote control
 # rotary encoder for volume
 
 
@@ -84,45 +78,12 @@ INPUTS = [
     ),
 ]
 
-CAMILLADSP_CONFIGS_PATH = "/home/itsik/camilladsp/configs/"
 MIN_VOLUME: float = -80.0
 MAX_VOLUME: float = 0.0
 DIM_STEP: float = 20.0
 
 
-class SongState:
-    def __init__(
-        self,
-        album: str = None,
-        artist: str = None,
-        title: str = None,
-        elapsed: int = 0,
-        length: int = 0,
-        bitrate: int = 0,
-        format: str = None,
-        image_url: str = None,
-    ):
-        self.album = album
-        self.artist = artist
-        self.song = title
-        self.elapsed = elapsed
-        self.length = length
-        self.bitrate = bitrate
-        self.format = format
-        self.image_url = image_url
-
-    def __eq__(self, other) -> bool:
-        return (
-            self.album == other.album
-            and self.artist == other.artist
-            and self.song == other.song
-        )
-
-    def __str__(self) -> str:
-        return f"{self.artist}|{self.album}|{self.song}|{self.bitrate}|{self.format}"
-
-
-class State:
+class ControlState:
     def __init__(self, input, input_mode, display_mode=None):
         self.input = input
         self.input_mode = input_mode
@@ -133,6 +94,10 @@ class State:
     def __str__(self) -> str:
         return f"input:{INPUTS[self.input].name:>7}, input_mode:{self.input_mode}, vol:{self.volume}, disp:{self.display_mode}"
 
+
+class ControlConfig:
+    def __init__(self, config: dict):
+        self.cdsp_configs_path = config["camilladsp_configs_path"]
 
 class Control:
     def __init__(
@@ -147,9 +112,10 @@ class Control:
         self.display_mode: DisplayMode = None
         self.pending_display_task = None
         self.image_gallery = ImageGalleryDisplayMode(cwd, config["image_gallery"])
+        self.config = ControlConfig(config)
 
         config_path = self.cdsp_client.config.file_path().removeprefix(
-            CAMILLADSP_CONFIGS_PATH
+            self.config.cdsp_configs_path
         )
         for i, input in enumerate(INPUTS):
             for j, filepath in enumerate(input.configs):
@@ -157,7 +123,7 @@ class Control:
                     current_input = i
                     input_mode = InputMode(j)
 
-        self.state = State(current_input, input_mode)
+        self.state = ControlState(current_input, input_mode)
         self.cdsp_client.volume.set_main(self.state.volume)
         logging.info("cdsp connected. %s", self.state)
 
@@ -181,7 +147,7 @@ class Control:
         await self.apply_input_state()
 
     async def apply_input_state(self):
-        path = f"{CAMILLADSP_CONFIGS_PATH}{INPUTS[self.state.input].configs[self.state.input_mode.value]}"
+        path = f"{self.config.cdsp_configs_path}{INPUTS[self.state.input].configs[self.state.input_mode.value]}"
         logging.info("apply_input_state. %s. %s", self.state, path)
         self.cdsp_client.config.set_file_path(path)
         self.cdsp_client.general.reload()
@@ -215,7 +181,8 @@ class Control:
 
     async def update_song_state(self, song_state: SongState) -> None:
         logging.info("update_song_state. %s", song_state)
-        self.display_mode = AlbumArtDisplayMode(url=song_state.image_url)
+        # self.display_mode = AlbumArtDisplayMode(url=song_state.image_url)
+        self.display_mode = MediaPlayerDisplayMode(song_state)
         await self.display_mode.render(self.displayctl)
 
     async def set_display_mode(self, display_mode: DisplayMode) -> None:

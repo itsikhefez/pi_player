@@ -118,7 +118,6 @@ class RemoteControl:
     async def handle_keypress(self, button: int) -> None:
         if not self.has_tokens(button):
             return
-
         logging.info("handle_keypress. %s", button)
         match button:
             case RemoteButton.FUNCTION:

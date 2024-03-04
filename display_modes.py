@@ -3,6 +3,7 @@ import urllib.request
 from typing import List
 from pathlib import Path
 from display import DisplayControl
+from song_state import SongState
 from PIL import ImageFont
 
 
@@ -23,11 +24,37 @@ class DefaultDisplayMode(DisplayMode):
 
 
 class MediaPlayerDisplayMode(DisplayMode):
-    def __init__(self):
-        pass
+    font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
+    default_font = ImageFont.truetype(font_path, 16)
+
+    def __init__(self, song_state: SongState):
+        self.song_state = song_state
 
     async def render(self, displayctl: DisplayControl):
-        pass
+        s = self.song_state
+        samplerate = f"{float(s.samplerate)/1000}k" if s.samplerate else ""
+        # fmt: off
+        text = (
+            f"{s.artist:.16}\n"
+            f"{s.title:.16}\n"
+            f"{s.album:.16}r\n"
+        )
+        # fmt: on
+        with displayctl.get_canvas() as draw:
+            draw.text(
+                (0, 0),
+                text,
+                font=MediaPlayerDisplayMode.default_font,
+                fill="white",
+                align="left",
+            )
+            draw.text(
+                (160 - len(samplerate) * 10, 108),
+                samplerate,
+                font=MediaPlayerDisplayMode.default_font,
+                fill="white",
+                align="right",
+            )
 
 
 class VolumeDisplayMode(DisplayMode):
@@ -51,8 +78,8 @@ class VolumeDisplayMode(DisplayMode):
 class AlbumArtDisplayMode(DisplayMode):
     default_image = str(RESOURCES_PATH.joinpath("default_album_art.png"))
 
-    def __init__(self, url):
-        self.url = url
+    def __init__(self, song_state: SongState):
+        self.url = song_state.url
 
     async def render(self, displayctl: DisplayControl):
         try:

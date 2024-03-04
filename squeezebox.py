@@ -4,8 +4,9 @@ import logging
 
 from typing import NamedTuple
 from pysqueezebox import Server, Player
-from control import Control, SongState
+from control import Control
 from media_player import MediaPlayerOp
+from song_state import SongState
 
 
 class SqueezeboxConfig(NamedTuple):
@@ -73,6 +74,10 @@ class SqueezeboxControl:
             album=player.album,
             artist=player.artist,
             title=player.title,
+            time=player.time,
+            duration=player.duration,
+            bitrate=player.bitrate,
+            samplerate=player.samplerate,
             image_url=player.image_url,
         )
         if self.curr_song_state != song_state:

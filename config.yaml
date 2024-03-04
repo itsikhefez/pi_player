@@ -2,4 +2,5 @@ image_gallery: ["unicorn0.jpg", "unicorn1.jpg", "unicorn2.jpg", "unicorn3.jpg", 
 squeezebox:
   lms_server_ip: "192.168.1.90"
   polling_sleep: 1
-  client_name: "ubuntu"
+  client_name: "Office"
+camilladsp_configs_path: "/home/itsik/camilladsp/configs/"
