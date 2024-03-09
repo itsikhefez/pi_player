@@ -99,6 +99,7 @@ class ControlConfig:
     def __init__(self, config: dict):
         self.cdsp_configs_path = config["camilladsp_configs_path"]
 
+
 class Control:
     def __init__(
         self,
@@ -117,11 +118,14 @@ class Control:
         config_path = self.cdsp_client.config.file_path().removeprefix(
             self.config.cdsp_configs_path
         )
+        current_input = -1
         for i, input in enumerate(INPUTS):
             for j, filepath in enumerate(input.configs):
                 if config_path == filepath:
                     current_input = i
                     input_mode = InputMode(j)
+
+        assert current_input > 0, f"invalid input file {config_path}"
 
         self.state = ControlState(current_input, input_mode)
         self.cdsp_client.volume.set_main(self.state.volume)

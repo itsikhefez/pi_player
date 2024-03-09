@@ -47,6 +47,6 @@ async def main():
     displayctl.close()
 
 
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    sys.exit(loop.run_until_complete(main()))
+# if __name__ == "__main__":
+#     loop = asyncio.get_event_loop()
+#     sys.exit(loop.run_until_complete(main()))
