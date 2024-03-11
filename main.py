@@ -10,7 +10,8 @@ import yaml
 from pathlib import Path
 from control import Control
 from display import DisplayControl
-from remote import RemoteControl
+from encoder import EncoderControl
+from remote import RemoteControl, RemoteButton
 from squeezebox import SqueezeboxControl
 
 # TODO:
@@ -40,6 +41,8 @@ async def main():
     ctl = Control(cwd, config, displayctl)
     squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
     remotectl = RemoteControl(ctl, mediactl=squeezectl)
+    EncoderControl(remotectl)
+
     await asyncio.gather(
         squeezectl.loop(),
         remotectl.loop(),
@@ -47,6 +50,6 @@ async def main():
     displayctl.close()
 
 
-# if __name__ == "__main__":
-#     loop = asyncio.get_event_loop()
-#     sys.exit(loop.run_until_complete(main()))
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    sys.exit(loop.run_until_complete(main()))

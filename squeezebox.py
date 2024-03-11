@@ -60,7 +60,7 @@ class SqueezeboxControl:
                     case MediaPlayerOp.PAUSE:
                         await player.async_toggle_pause()
                     case _:
-                        raise Exception(f"{self.pending} not assigned")
+                        logging.error(f"{self.pending} not assigned")
                 logging.info("handle_op. %s", self.pending)
         except TimeoutError:
             # in most cases the remote is not pressed so this will time-out
@@ -89,10 +89,15 @@ class SqueezeboxControl:
         )
 
     async def loop(self):
+        player = None
         async with aiohttp.ClientSession() as session:
             lms = Server(session, self.config.lms_server_ip)
-            player = await lms.async_get_player(name=self.config.client_name)
-            logging.info("Started squeezebox listener")
+            while player is None:
+                player = await lms.async_get_player(name=self.config.client_name)
+                if not player:
+                    logging.warning("squeezebox player not found. retrying...")
+                    await asyncio.sleep(1)
+            logging.info("started squeezebox listener...")
             while True:
                 for coro in asyncio.as_completed(
                     [

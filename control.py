@@ -111,7 +111,6 @@ class Control:
         self.cdsp_client = CamillaClient("127.0.0.1", 1234)
         self.cdsp_client.connect()
         self.display_mode: DisplayMode = None
-        self.pending_display_task = None
         self.image_gallery = ImageGalleryDisplayMode(cwd, config["image_gallery"])
         self.config = ControlConfig(config)
 
@@ -157,9 +156,6 @@ class Control:
         self.cdsp_client.general.reload()
 
     async def volume_step(self, volume_step: float, reset_dim: bool = True) -> None:
-        if self.pending_display_task:
-            self.pending_display_task.cancel()
-
         if reset_dim:
             self.state.dim = 1
         next_volume = round(self.state.volume + volume_step, 1)
@@ -171,8 +167,6 @@ class Control:
         self.cdsp_client.volume.set_main(next_volume)
         self.state.volume = next_volume
         await VolumeDisplayMode(self.state.volume).render(self.displayctl)
-
-        self.pending_display_task = asyncio.create_task(self.revert_display_mode())
 
     async def volume_dim(self) -> None:
         self.state.dim = -1 * self.state.dim
@@ -192,10 +186,3 @@ class Control:
     async def set_display_mode(self, display_mode: DisplayMode) -> None:
         await display_mode.render(self.displayctl)
         self.display_mode = display_mode
-
-    async def revert_display_mode(self):
-        try:
-            await asyncio.sleep(5)
-            await self.display_mode.render(self.displayctl)
-        except asyncio.CancelledError:
-            pass

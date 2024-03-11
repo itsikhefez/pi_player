@@ -115,8 +115,8 @@ class RemoteControl:
         else:
             return self.button_throttle.has_tokens()
 
-    async def handle_keypress(self, button: int) -> None:
-        if not self.has_tokens(button):
+    async def handle_keypress(self, button: int, force: bool = False) -> None:
+        if not force and not self.has_tokens(button):
             return
         logging.info("handle_keypress. %s", button)
         match button:
@@ -149,7 +149,7 @@ class RemoteControl:
             case RemoteButton.ZERO_TEN:
                 print("0/10")
             case RemoteButton.GT_TEN:
-                print(">10")
+                await self.ctl.next_input()
             case RemoteButton.BAND:
                 await self.ctl.volume_dim()
             case RemoteButton.TUNE_UP:
