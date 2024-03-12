@@ -1,7 +1,9 @@
 import asyncio
 import pigpio
 
+from threading import Thread
 from remote import RemoteControl, RemoteButton
+from timing import timer_func
 
 GPIO_A = 27
 GPIO_B = 4
@@ -61,13 +63,9 @@ class RotaryEncoder:
 
 
 class EncoderControl:
-    def __init__(self, remotectl: RemoteControl):
+    def __init__(self, remotectl: RemoteControl, loop: asyncio.AbstractEventLoop):
         def sw_short():
-            asyncio.run(
-                remotectl.handle_keypress(
-                    RemoteButton.GT_TEN,
-                )
-            )
+            asyncio.run(remotectl.handle_keypress(RemoteButton.GT_TEN))
 
         def up_cb():
             asyncio.run(remotectl.handle_keypress(RemoteButton.TUNE_UP, force=True))

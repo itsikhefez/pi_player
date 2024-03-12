@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from threading import Thread
 from pathlib import Path
 from typing import Dict, List
 from enum import Enum, auto
@@ -12,11 +13,10 @@ from display_modes import (
     ImageGalleryDisplayMode,
     MediaPlayerDisplayMode,
     VolumeDisplayMode,
+    DisplayQueue,
 )
 from song_state import SongState
-
-# TODO:
-# rotary encoder for volume
+from timing import timer_func
 
 
 class InputMode(Enum):
@@ -107,7 +107,7 @@ class Control:
         config: dict,
         displayctl: DisplayControl,
     ):
-        self.displayctl = displayctl
+        self.display_queue = DisplayQueue(displayctl, asyncio.get_event_loop())
         self.cdsp_client = CamillaClient("127.0.0.1", 1234)
         self.cdsp_client.connect()
         self.display_mode: DisplayMode = None
@@ -166,23 +166,21 @@ class Control:
         logging.info("volume_step. %.2fdB", next_volume)
         self.cdsp_client.volume.set_main(next_volume)
         self.state.volume = next_volume
-        await VolumeDisplayMode(self.state.volume).render(self.displayctl)
+        self.display_queue.put(VolumeDisplayMode(self.state.volume))
 
     async def volume_dim(self) -> None:
         self.state.dim = -1 * self.state.dim
         volume_step = self.state.dim * DIM_STEP
         logging.info("volume_dim. %d", self.state.dim)
-        await self.volume_step(volume_step=volume_step, reset_dim=False)
+        # await self.volume_step(volume_step=volume_step, reset_dim=False)
 
     async def mute(self) -> None:
         return None
 
     async def update_song_state(self, song_state: SongState) -> None:
         logging.info("update_song_state. %s", song_state)
-        # self.display_mode = AlbumArtDisplayMode(url=song_state.image_url)
-        self.display_mode = MediaPlayerDisplayMode(song_state)
-        await self.display_mode.render(self.displayctl)
+        self.display_queue.put(AlbumArtDisplayMode(song_state))
 
     async def set_display_mode(self, display_mode: DisplayMode) -> None:
-        await display_mode.render(self.displayctl)
+        self.display_queue.put(display_mode)
         self.display_mode = display_mode

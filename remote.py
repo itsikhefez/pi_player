@@ -5,6 +5,7 @@ from enum import Enum, auto
 from control import Control, InputMode
 from media_player import MediaPlayerControl, MediaPlayerOp
 from throttle import Debounce, TokenBucket
+from timing import timer_func
 
 """
 Remote control functionality
@@ -89,7 +90,7 @@ KEYMAP = {
 class RemoteControl:
     def __init__(self, ctl: Control, mediactl: MediaPlayerControl):
         self.button_throttle = Debounce(0.15)
-        self.volume_throttle = TokenBucket(1, 0.3)
+        self.volume_throttle = TokenBucket(1, 0.175)
         self.device = evdev.InputDevice(INPUT_DEVICE)
         self.ctl = ctl
         self.mediactl = mediactl

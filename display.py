@@ -1,10 +1,7 @@
-import logging
-
-from PIL import Image, ImageOps, ImageFont
+from PIL import Image, ImageOps
 from luma.core.render import canvas
 from luma.core.interface.serial import spi
-from luma.lcd.device import st7735
-from pathlib import Path
+from luma.lcd.device import st7789, st7735
 
 
 class DisplayControl:
@@ -12,13 +9,9 @@ class DisplayControl:
         serial = spi(
             gpio_DC=23,
             gpio_RST=24,
-            bus_speed_hz=32000000,
-            reset_hold_time=0.1,
-            reset_release_time=0.1,
+            bus_speed_hz=52000000,
         )
-        self.device = st7735(
-            serial_interface=serial, width=160, height=128, active_low=False, rotate=2
-        )
+        self.device = st7789(serial_interface=serial, active_low=False)
 
     def close(self):
         self.device.cleanup()

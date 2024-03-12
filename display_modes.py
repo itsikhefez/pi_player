@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import urllib.request
 from typing import List
@@ -5,13 +6,15 @@ from pathlib import Path
 from display import DisplayControl
 from song_state import SongState
 from PIL import ImageFont
+import threading
+import queue
 
 
 RESOURCES_PATH = Path(__file__).resolve().parent.joinpath("resources")
 
 
 class DisplayMode:
-    async def render(self, displayctl: DisplayControl):
+    def render(self, displayctl: DisplayControl):
         pass
 
 
@@ -19,7 +22,7 @@ class DefaultDisplayMode(DisplayMode):
     def __init__(self):
         pass
 
-    async def render(self, displayctl: DisplayControl):
+    def render(self, displayctl: DisplayControl):
         pass
 
 
@@ -27,10 +30,11 @@ class MediaPlayerDisplayMode(DisplayMode):
     font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
     default_font = ImageFont.truetype(font_path, 16)
 
-    def __init__(self, song_state: SongState):
+    def __init__(self, song_state: SongState, volume=None):
         self.song_state = song_state
+        self.volume = volume
 
-    async def render(self, displayctl: DisplayControl):
+    def render(self, displayctl: DisplayControl):
         s = self.song_state
         samplerate = f"{float(s.samplerate)/1000}k" if s.samplerate else ""
         # fmt: off
@@ -52,19 +56,28 @@ class MediaPlayerDisplayMode(DisplayMode):
                 (160 - len(samplerate) * 10, 108),
                 samplerate,
                 font=MediaPlayerDisplayMode.default_font,
-                fill="white",
+                fill="green",
                 align="right",
             )
+            if self.volume:
+                volume_str = f"{self.volume:5}dB"
+                draw.text(
+                    (0, 108),
+                    volume_str,
+                    font=MediaPlayerDisplayMode.default_font,
+                    fill="purple",
+                    align="right",
+                )
 
 
 class VolumeDisplayMode(DisplayMode):
     font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
-    default_font = ImageFont.truetype(font_path, 48)
+    default_font = ImageFont.truetype(font_path, 72)
 
     def __init__(self, volume: float):
         self.volume = volume
 
-    async def render(self, displayctl: DisplayControl):
+    def render(self, displayctl: DisplayControl):
         with displayctl.get_canvas() as draw:
             draw.text(
                 (10, 10),
@@ -79,9 +92,9 @@ class AlbumArtDisplayMode(DisplayMode):
     default_image = str(RESOURCES_PATH.joinpath("default_album_art.png"))
 
     def __init__(self, song_state: SongState):
-        self.url = song_state.url
+        self.url = song_state.image_url
 
-    async def render(self, displayctl: DisplayControl):
+    def render(self, displayctl: DisplayControl):
         try:
             img_tmp_path = "img-tmp"
             urllib.request.urlretrieve(self.url, img_tmp_path)
@@ -96,9 +109,27 @@ class ImageGalleryDisplayMode(DisplayMode):
         self.image_gallery = [cwd.joinpath("resources", f) for f in images]
         self.gallery_index = 0
 
-    async def render(self, displayctl: DisplayControl):
+    def render(self, displayctl: DisplayControl):
         displayctl.show_image(path=self.image_gallery[self.gallery_index], stretch=True)
 
     def scroll_gallery(self) -> DisplayMode:
         self.gallery_index = (self.gallery_index + 1) % len(self.image_gallery)
         return self
+
+
+class DisplayQueue:
+    def __init__(self, displayctl: DisplayControl, loop):
+        self.displayctl = displayctl
+        self.q = asyncio.Queue()
+        asyncio.run_coroutine_threadsafe(self.refresh_loop(), loop)
+
+    def put(self, mode: DisplayMode):
+        self.q.put_nowait(mode)
+
+    async def refresh_loop(self):
+        while True:
+            mode = await self.q.get()
+            while not self.q.empty():
+                mode = await self.q.get()
+            mode.render(self.displayctl)
+            self.q.task_done()
