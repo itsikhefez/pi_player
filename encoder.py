@@ -63,7 +63,7 @@ class RotaryEncoder:
 
 
 class EncoderControl:
-    def __init__(self, remotectl: RemoteControl, loop: asyncio.AbstractEventLoop):
+    def __init__(self, remotectl: RemoteControl):
         def sw_short():
             asyncio.run(remotectl.handle_keypress(RemoteButton.GT_TEN))
 

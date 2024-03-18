@@ -1,7 +1,7 @@
 import asyncio
 import logging
-
-from threading import Thread
+import time
+import threading
 from pathlib import Path
 from typing import Dict, List
 from enum import Enum, auto
@@ -172,14 +172,15 @@ class Control:
         self.state.dim = -1 * self.state.dim
         volume_step = self.state.dim * DIM_STEP
         logging.info("volume_dim. %d", self.state.dim)
-        # await self.volume_step(volume_step=volume_step, reset_dim=False)
+        await self.volume_step(volume_step=volume_step, reset_dim=False)
 
     async def mute(self) -> None:
         return None
 
     async def update_song_state(self, song_state: SongState) -> None:
         logging.info("update_song_state. %s", song_state)
-        self.display_queue.put(AlbumArtDisplayMode(song_state))
+        self.display_mode = AlbumArtDisplayMode(song_state)
+        self.display_queue.put(self.display_mode)
 
     async def set_display_mode(self, display_mode: DisplayMode) -> None:
         self.display_queue.put(display_mode)

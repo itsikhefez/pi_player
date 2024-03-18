@@ -41,7 +41,7 @@ async def main():
     ctl = Control(cwd, config, displayctl)
     squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
     remotectl = RemoteControl(ctl, mediactl=squeezectl)
-    EncoderControl(remotectl, loop=asyncio.get_event_loop())
+    EncoderControl(remotectl)
 
     await asyncio.gather(
         squeezectl.loop(),
