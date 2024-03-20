@@ -5,7 +5,6 @@ from enum import Enum, auto
 from control import Control, InputMode
 from media_player import MediaPlayerControl, MediaPlayerOp
 from throttle import Debounce, TokenBucket
-from timing import timer_func
 
 """
 Remote control functionality

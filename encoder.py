@@ -3,7 +3,6 @@ import pigpio
 
 from threading import Thread
 from remote import RemoteControl, RemoteButton
-from timing import timer_func
 
 GPIO_A = 27
 GPIO_B = 4

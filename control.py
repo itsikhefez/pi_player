@@ -3,8 +3,7 @@ import logging
 from pathlib import Path
 from typing import List
 from enum import Enum
-from camilladsp import CamillaClient, CamillaError
-from display import DisplayControl
+from camilladsp import CamillaClient
 from display_modes import (
     DisplayMode,
     AlbumArtDisplayMode,
@@ -13,7 +12,6 @@ from display_modes import (
     DisplayQueue,
 )
 from song_state import SongState
-from timing import timer_func
 
 
 class InputMode(Enum):
@@ -73,25 +71,26 @@ class Control:
         display_queue: DisplayQueue,
     ):
         self.loop = asyncio.get_running_loop()
-        self.pending = None
+        self.pending_display_revert = None
+
         self.display_queue = display_queue
-        self.cdsp_client = CamillaClient("127.0.0.1", 1234)
-        self.cdsp_client.connect()
+        self.config = ControlConfig(config)
         self.display_mode: DisplayMode = None
         self.image_gallery = ImageGalleryDisplayMode(cwd, config["image_gallery"])
-        self.config = ControlConfig(config)
 
-        config_path = self.cdsp_client.config.file_path().removeprefix(
+        self.cdsp_client = CamillaClient("127.0.0.1", 1234)
+        self.cdsp_client.connect()
+        cdsp_config_path = self.cdsp_client.config.file_path().removeprefix(
             self.config.cdsp_configs_path
         )
         current_input = None
         for input in self.config.inputs:
             for j, filepath in enumerate(input.configs):
-                if config_path == filepath:
+                if cdsp_config_path == filepath:
                     current_input = input
                     input_mode = InputMode(j)
 
-        assert current_input is not None, f"invalid input file {config_path}"
+        assert current_input is not None, f"invalid input file {cdsp_config_path}"
 
         self.state = ControlState(current_input, input_mode)
         self.cdsp_client.volume.set_main(self.state.volume)
@@ -122,9 +121,13 @@ class Control:
         self.cdsp_client.config.set_file_path(path)
         self.cdsp_client.general.reload()
 
+    async def revert_display_after(self, delay: int):
+        await asyncio.sleep(delay)
+        self.display_queue.put(self.display_mode)
+
     async def volume_step(self, volume_step: float, reset_dim: bool = True) -> None:
-        if self.pending:
-            self.pending.cancel()
+        if self.pending_display_revert:
+            self.pending_display_revert.cancel()
 
         if reset_dim:
             self.state.dim = 1
@@ -138,12 +141,8 @@ class Control:
         self.state.volume = next_volume
         self.display_queue.put(VolumeDisplayMode(self.state.volume))
 
-        async def revert_display():
-            await asyncio.sleep(3)
-            self.display_queue.put(self.display_mode)
-
-        self.pending = asyncio.run_coroutine_threadsafe(
-            coro=revert_display(), loop=self.loop
+        self.pending_display_revert = asyncio.run_coroutine_threadsafe(
+            coro=self.revert_display_after(5), loop=self.loop
         )
 
     async def volume_dim(self) -> None:

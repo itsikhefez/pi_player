@@ -1,2 +1,5 @@
 __pycache__
-resources/unicorn.*
+.vscode
+*.code-workspace
+img-tmp
+resources/*.jpg

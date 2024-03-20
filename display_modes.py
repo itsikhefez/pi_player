@@ -130,7 +130,7 @@ class DisplayQueue:
             mode = await self.q.get()
             while not self.q.empty():
                 mode = await self.q.get()
-                assert isinstance(mode, DisplayMode)
 
+            assert isinstance(mode, DisplayMode)
             mode.render(self.displayctl)
             self.q.task_done()

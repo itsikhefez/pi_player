@@ -24,6 +24,8 @@ from squeezebox import SqueezeboxControl
 
 async def main():
     os.system("clear")
+    cwd = Path(__file__).resolve().parent
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--log",
@@ -31,12 +33,13 @@ async def main():
         help="sets logging level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
     )
+    parser.add_argument(
+        "--config-path", help="path to config file", default=cwd.joinpath("config.yaml")
+    )
     args = parser.parse_args()
     logging.basicConfig(level=args.log)
 
-    cwd = Path(__file__).resolve().parent
-    config_path = cwd.joinpath("config.yaml")
-    config = yaml.safe_load(config_path.read_text())
+    config = yaml.safe_load(args.config_path.read_text())
 
     displayctl = DisplayControl()
     display_queue = DisplayQueue(displayctl)
