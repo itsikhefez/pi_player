@@ -96,7 +96,7 @@ class RemoteControl:
         self.mediactl = mediactl
         logging.info(self.device)
 
-    async def loop(self):
+    async def refresh_loop(self):
         logging.info("started remote event listener...")
         async for event in self.device.async_read_loop():
             code = event.value

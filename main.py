@@ -10,6 +10,7 @@ import yaml
 from pathlib import Path
 from control import Control
 from display import DisplayControl
+from display_modes import DisplayQueue
 from encoder import EncoderControl
 from remote import RemoteControl, RemoteButton
 from squeezebox import SqueezeboxControl
@@ -38,14 +39,16 @@ async def main():
     config = yaml.safe_load(config_path.read_text())
 
     displayctl = DisplayControl()
-    ctl = Control(cwd, config, displayctl)
+    display_queue = DisplayQueue(displayctl)
+    ctl = Control(cwd, config, display_queue)
     squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
     remotectl = RemoteControl(ctl, mediactl=squeezectl)
     EncoderControl(remotectl)
 
     await asyncio.gather(
-        squeezectl.loop(),
-        remotectl.loop(),
+        squeezectl.refresh_loop(),
+        remotectl.refresh_loop(),
+        display_queue.refresh_loop(),
     )
     displayctl.close()
 

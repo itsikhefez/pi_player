@@ -1,17 +1,14 @@
 import asyncio
 import logging
-import time
-import threading
 from pathlib import Path
-from typing import Dict, List
-from enum import Enum, auto
+from typing import List
+from enum import Enum
 from camilladsp import CamillaClient, CamillaError
 from display import DisplayControl
 from display_modes import (
     DisplayMode,
     AlbumArtDisplayMode,
     ImageGalleryDisplayMode,
-    MediaPlayerDisplayMode,
     VolumeDisplayMode,
     DisplayQueue,
 )
@@ -33,50 +30,9 @@ class Input:
         self.name = name
         self.configs = configs
 
+    def __str__(self) -> str:
+        return f"{self.name}->{self.configs}"
 
-INPUTS = [
-    # configs for DIRECT, EQ, EQ_ALT
-    Input(
-        name="TV",
-        configs=[
-            "ucx2_toslink_48c_48p.yaml",
-            "ucx2_toslink_48c_48p.yaml",
-            "ucx2_toslink_48c_48p.yaml",
-        ],
-    ),
-    Input(
-        name="Phono",
-        configs=[
-            "ucx2_toslink_48c_48p.yaml",
-            "ucx2_analog_48c_48p.yaml",
-            "ucx2_toslink_48c_48p.yaml",
-        ],
-    ),
-    Input(
-        name="Tape",
-        configs=[
-            "ucx2_toslink_48c_48p.yaml",
-            "ucx2_analog_48c_48p.yaml",
-            "ucx2_toslink_48c_48p.yaml",
-        ],
-    ),
-    Input(
-        name="Digital",
-        configs=[
-            "ucx2_toslink_48c_48p.yaml",
-            "ucx2_streamer_44c_44p_MP.yaml",
-            "ucx2_toslink_48c_48p.yaml",
-        ],
-    ),
-    Input(
-        name="Karaoke",
-        configs=[
-            "ucx2_toslink_48c_48p.yaml",
-            "ucx2_streamer_44c_44p_MP.yaml",
-            "ucx2_toslink_48c_48p.yaml",
-        ],
-    ),
-]
 
 MIN_VOLUME: float = -80.0
 MAX_VOLUME: float = 0.0
@@ -84,7 +40,12 @@ DIM_STEP: float = 20.0
 
 
 class ControlState:
-    def __init__(self, input, input_mode, display_mode=None):
+    def __init__(
+        self,
+        input: Input,
+        input_mode: InputMode,
+        display_mode: DisplayMode | None = None,
+    ):
         self.input = input
         self.input_mode = input_mode
         self.volume: float = -40.0
@@ -92,12 +53,16 @@ class ControlState:
         self.display_mode = display_mode
 
     def __str__(self) -> str:
-        return f"input:{INPUTS[self.input].name:>7}, input_mode:{self.input_mode}, vol:{self.volume}, disp:{self.display_mode}"
+        return f"input:{self.input.name:>7}, input_mode:{self.input_mode}, vol:{self.volume}, disp:{self.display_mode}"
 
 
 class ControlConfig:
     def __init__(self, config: dict):
         self.cdsp_configs_path = config["camilladsp_configs_path"]
+        self.inputs: List[Input] = []
+        for k, v in config["inputs"].items():
+            self.inputs.append(Input(name=k, configs=v))
+        assert len(self.inputs) > 0, "must have atleast 1 input in config"
 
 
 class Control:
@@ -105,9 +70,11 @@ class Control:
         self,
         cwd: Path,
         config: dict,
-        displayctl: DisplayControl,
+        display_queue: DisplayQueue,
     ):
-        self.display_queue = DisplayQueue(displayctl, asyncio.get_event_loop())
+        self.loop = asyncio.get_running_loop()
+        self.pending = None
+        self.display_queue = display_queue
         self.cdsp_client = CamillaClient("127.0.0.1", 1234)
         self.cdsp_client.connect()
         self.display_mode: DisplayMode = None
@@ -117,14 +84,14 @@ class Control:
         config_path = self.cdsp_client.config.file_path().removeprefix(
             self.config.cdsp_configs_path
         )
-        current_input = -1
-        for i, input in enumerate(INPUTS):
+        current_input = None
+        for input in self.config.inputs:
             for j, filepath in enumerate(input.configs):
                 if config_path == filepath:
-                    current_input = i
+                    current_input = input
                     input_mode = InputMode(j)
 
-        assert current_input > 0, f"invalid input file {config_path}"
+        assert current_input is not None, f"invalid input file {config_path}"
 
         self.state = ControlState(current_input, input_mode)
         self.cdsp_client.volume.set_main(self.state.volume)
@@ -137,7 +104,7 @@ class Control:
         await self.apply_input_state()
 
     async def change_input(self, input: int) -> None:
-        assert input >= 0 and input < len(INPUTS)
+        assert input >= 0 and input < len(self.config.inputs)
         self.state.input = input
         await self.apply_input_state()
 
@@ -146,16 +113,19 @@ class Control:
             input = self.state.input - 1
         else:
             input = self.state.input + 1
-        self.state.input = input % len(INPUTS)
+        self.state.input = input % len(self.config.inputs)
         await self.apply_input_state()
 
     async def apply_input_state(self):
-        path = f"{self.config.cdsp_configs_path}{INPUTS[self.state.input].configs[self.state.input_mode.value]}"
+        path = f"{self.config.cdsp_configs_path}{self.state.input.configs[self.state.input_mode.value]}"
         logging.info("apply_input_state. %s. %s", self.state, path)
         self.cdsp_client.config.set_file_path(path)
         self.cdsp_client.general.reload()
 
     async def volume_step(self, volume_step: float, reset_dim: bool = True) -> None:
+        if self.pending:
+            self.pending.cancel()
+
         if reset_dim:
             self.state.dim = 1
         next_volume = round(self.state.volume + volume_step, 1)
@@ -167,6 +137,14 @@ class Control:
         self.cdsp_client.volume.set_main(next_volume)
         self.state.volume = next_volume
         self.display_queue.put(VolumeDisplayMode(self.state.volume))
+
+        async def revert_display():
+            await asyncio.sleep(3)
+            self.display_queue.put(self.display_mode)
+
+        self.pending = asyncio.run_coroutine_threadsafe(
+            coro=revert_display(), loop=self.loop
+        )
 
     async def volume_dim(self) -> None:
         self.state.dim = -1 * self.state.dim

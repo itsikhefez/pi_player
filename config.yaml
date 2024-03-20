@@ -1,6 +1,29 @@
+camilladsp_configs_path: "/home/itsik/camilladsp/configs/"
 image_gallery: ["unicorn0.jpg", "unicorn1.jpg", "unicorn2.jpg", "unicorn3.jpg", "unicorn4.jpg"]
 squeezebox:
   lms_server_ip: "192.168.1.90"
   polling_sleep: 1
   client_name: "ubuntu-dev"
-camilladsp_configs_path: "/home/itsik/camilladsp/configs/"
+inputs:
+  # Inputs are expected as lists of length 3, in order of
+  # Default, EQ, EQ_ALT
+  TV:
+    - ucx2_toslink_48c_48p.yaml
+    - ucx2_toslink_48c_48p.yaml
+    - ucx2_toslink_48c_48p.yaml
+  Phono:
+    - ucx2_analog_48c_48p.yaml
+    - ucx2_analog_48c_48p.yaml
+    - ucx2_analog_48c_48p.yaml
+  Tape:
+    - ucx2_analog_48c_48p.yaml
+    - ucx2_analog_48c_48p.yaml
+    - ucx2_analog_48c_48p.yaml
+  Digital:
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p_eq.yaml
+    - ucx2_streamer_44c_44p_eq_alt.yaml
+  Karaoke:
+    - ucx2_streamer_44c_44p_MP.yaml
+    - ucx2_toslink_48c_48p.yaml
+    - ucx2_toslink_48c_48p.yaml    

@@ -88,7 +88,7 @@ class SqueezeboxControl:
             f"{player.artist} - [{player.album}] {player.title} / {player.image_url}"
         )
 
-    async def loop(self):
+    async def refresh_loop(self):
         player = None
         async with aiohttp.ClientSession() as session:
             lms = Server(session, self.config.lms_server_ip)

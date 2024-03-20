@@ -118,10 +118,9 @@ class ImageGalleryDisplayMode(DisplayMode):
 
 
 class DisplayQueue:
-    def __init__(self, displayctl: DisplayControl, loop):
+    def __init__(self, displayctl: DisplayControl):
         self.displayctl = displayctl
         self.q = asyncio.Queue()
-        asyncio.run_coroutine_threadsafe(self.refresh_loop(), loop)
 
     def put(self, mode: DisplayMode):
         self.q.put_nowait(mode)
@@ -131,5 +130,7 @@ class DisplayQueue:
             mode = await self.q.get()
             while not self.q.empty():
                 mode = await self.q.get()
+                assert isinstance(mode, DisplayMode)
+
             mode.render(self.displayctl)
             self.q.task_done()
