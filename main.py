@@ -1,31 +1,24 @@
 import argparse
 import logging
-import os
 import sys
 import asyncio
 import yaml
 
-# import aioconsole
-# import tty
 from pathlib import Path
 from control import Control
 from display import DisplayControl
 from display_modes import DisplayQueue
 from encoder import EncoderControl
-from remote import RemoteControl, RemoteButton
+from remote import RemoteControl
 from squeezebox import SqueezeboxControl
 
 # TODO:
 # [] OLED display integration
 # [] streamer mode:
 #    [] song artist/title
-# [] rotary encoder for volume / input
 
 
 async def main():
-    os.system("clear")
-    cwd = Path(__file__).resolve().parent
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--log",
@@ -33,19 +26,21 @@ async def main():
         help="sets logging level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
     )
-    parser.add_argument(
-        "--config-path", help="path to config file", default=cwd.joinpath("config.yaml")
-    )
+    parser.add_argument("--config-path", help="path to config file")
     args = parser.parse_args()
     logging.basicConfig(level=args.log)
 
-    config = yaml.safe_load(args.config_path.read_text())
+    cwd = Path(__file__).resolve().parent
+    config_path = (
+        Path(args.config_path) if args.config_path else cwd.joinpath("config.yaml")
+    )
+    config = yaml.safe_load(config_path.read_text())
 
     displayctl = DisplayControl()
     display_queue = DisplayQueue(displayctl)
     ctl = Control(cwd, config, display_queue)
     squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
-    remotectl = RemoteControl(ctl, mediactl=squeezectl)
+    remotectl = RemoteControl(config["remote"], ctl, mediactl=squeezectl)
     EncoderControl(remotectl)
 
     await asyncio.gather(

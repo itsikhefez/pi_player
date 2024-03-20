@@ -5,25 +5,57 @@ squeezebox:
   polling_sleep: 1
   client_name: "ubuntu-dev"
 inputs:
-  # Inputs are expected as lists of length 3, in order of
+  # Inputs are expected as lists of length 3 in order of
   # Default, EQ, EQ_ALT
   TV:
-    - ucx2_toslink_48c_48p.yaml
-    - ucx2_toslink_48c_48p.yaml
-    - ucx2_toslink_48c_48p.yaml
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
   Phono:
-    - ucx2_analog_48c_48p.yaml
-    - ucx2_analog_48c_48p.yaml
-    - ucx2_analog_48c_48p.yaml
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
   Tape:
-    - ucx2_analog_48c_48p.yaml
-    - ucx2_analog_48c_48p.yaml
-    - ucx2_analog_48c_48p.yaml
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
   Digital:
     - ucx2_streamer_44c_44p.yaml
-    - ucx2_streamer_44c_44p_eq.yaml
-    - ucx2_streamer_44c_44p_eq_alt.yaml
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
   Karaoke:
-    - ucx2_streamer_44c_44p_MP.yaml
-    - ucx2_toslink_48c_48p.yaml
-    - ucx2_toslink_48c_48p.yaml    
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p.yaml
+remote:
+  input_device: /dev/input/event0
+  keymap:
+    0x440047: FUNCTION
+    0x440060: SLEEP
+    0x440015: POWER
+    0x640000: ONE
+    0x640001: TWO
+    0x640002: THREE
+    0x640003: FOUR
+    0x640004: FIVE
+    0x640005: SIX
+    0x640006: SEVEN
+    0x640007: EIGHT
+    0x640008: NINE
+    0x440011: MODE
+    0x64000C: ZERO_TEN
+    0x64000D: GT_TEN
+    0x64006F: BAND
+    0x640073: TUNE_UP
+    0x640074: TUNE_DOWN
+    0x440012: VOL_UP
+    0x440013: VOL_DOWN
+    0x640032: PLAY
+    0x640039: PAUSE
+    0x640038: STOP
+    0x640030: PREV
+    0x64003A: HOLD_PREV
+    0x640031: NEXT
+    0x64003B: HOLD_NEXT
+    0x44002A: MEGA_XPAND
+    0x44003F: MEGA_BASS

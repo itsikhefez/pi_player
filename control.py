@@ -24,7 +24,8 @@ class Input:
     name: str
     configs: List[str]
 
-    def __init__(self, name, configs):
+    def __init__(self, index, name, configs):
+        self.index = index
         self.name = name
         self.configs = configs
 
@@ -58,8 +59,10 @@ class ControlConfig:
     def __init__(self, config: dict):
         self.cdsp_configs_path = config["camilladsp_configs_path"]
         self.inputs: List[Input] = []
+        index = 0
         for k, v in config["inputs"].items():
-            self.inputs.append(Input(name=k, configs=v))
+            self.inputs.append(Input(index=index, name=k, configs=v))
+            index += 1
         assert len(self.inputs) > 0, "must have atleast 1 input in config"
 
 
@@ -102,17 +105,14 @@ class Control:
         )
         await self.apply_input_state()
 
-    async def change_input(self, input: int) -> None:
-        assert input >= 0 and input < len(self.config.inputs)
-        self.state.input = input
+    async def change_input(self, i: int) -> None:
+        assert i >= 0 and i < len(self.config.inputs)
+        self.state.input = self.config.inputs[i]
         await self.apply_input_state()
 
     async def next_input(self, prev: bool = False) -> None:
-        if prev:
-            input = self.state.input - 1
-        else:
-            input = self.state.input + 1
-        self.state.input = input % len(self.config.inputs)
+        index = (self.state.input.index - (1 if prev else -1)) % len(self.config.inputs)
+        self.state.input = self.config.inputs[index]
         await self.apply_input_state()
 
     async def apply_input_state(self):

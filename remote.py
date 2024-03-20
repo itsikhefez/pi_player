@@ -1,7 +1,7 @@
 import evdev
 import logging
 
-from enum import Enum, auto
+from enum import StrEnum, auto
 from control import Control, InputMode
 from media_player import MediaPlayerControl, MediaPlayerOp
 from throttle import Debounce, TokenBucket
@@ -20,7 +20,7 @@ Remote control functionality
 """
 
 
-class RemoteButton(Enum):
+class RemoteButton(StrEnum):
     FUNCTION = auto()
     SLEEP = auto()
     POWER = auto()
@@ -52,54 +52,25 @@ class RemoteButton(Enum):
     MEGA_BASS = auto()
 
 
-INPUT_DEVICE = "/dev/input/event0"
-KEYMAP = {
-    0x440047: RemoteButton.FUNCTION,
-    0x440060: RemoteButton.SLEEP,
-    0x440015: RemoteButton.POWER,
-    0x640000: RemoteButton.ONE,
-    0x640001: RemoteButton.TWO,
-    0x640002: RemoteButton.THREE,
-    0x640003: RemoteButton.FOUR,
-    0x640004: RemoteButton.FIVE,
-    0x640005: RemoteButton.SIX,
-    0x640006: RemoteButton.SEVEN,
-    0x640007: RemoteButton.EIGHT,
-    0x640008: RemoteButton.NINE,
-    0x440011: RemoteButton.MODE,
-    0x64000C: RemoteButton.ZERO_TEN,
-    0x64000D: RemoteButton.GT_TEN,
-    0x64006F: RemoteButton.BAND,
-    0x640073: RemoteButton.TUNE_UP,
-    0x640074: RemoteButton.TUNE_DOWN,
-    0x440012: RemoteButton.VOL_UP,
-    0x440013: RemoteButton.VOL_DOWN,
-    0x640032: RemoteButton.PLAY,
-    0x640039: RemoteButton.PAUSE,
-    0x640038: RemoteButton.STOP,
-    0x640030: RemoteButton.PREV,
-    0x64003A: RemoteButton.HOLD_PREV,
-    0x640031: RemoteButton.NEXT,
-    0x64003B: RemoteButton.HOLD_NEXT,
-    0x44002A: RemoteButton.MEGA_XPAND,
-    0x44003F: RemoteButton.MEGA_BASS,
-}
-
-
 class RemoteControl:
-    def __init__(self, ctl: Control, mediactl: MediaPlayerControl):
+    def __init__(self, config: dict, ctl: Control, mediactl: MediaPlayerControl):
         self.button_throttle = Debounce(0.15)
         self.volume_throttle = TokenBucket(1, 0.175)
-        self.device = evdev.InputDevice(INPUT_DEVICE)
+        self.device = evdev.InputDevice(config["input_device"])
         self.ctl = ctl
         self.mediactl = mediactl
+
+        self.keymap = dict()
+        for k, v in config["keymap"].items():
+            self.keymap[int(k)] = RemoteButton(v.lower())
+
         logging.info(self.device)
 
     async def refresh_loop(self):
         logging.info("started remote event listener...")
         async for event in self.device.async_read_loop():
             code = event.value
-            button = KEYMAP.get(code)
+            button = self.keymap.get(code)
             if not button:
                 continue
             await self.handle_keypress(button)

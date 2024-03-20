@@ -1,7 +1,6 @@
 import asyncio
 import pigpio
 
-from threading import Thread
 from remote import RemoteControl, RemoteButton
 
 GPIO_A = 27
@@ -63,17 +62,27 @@ class RotaryEncoder:
 
 class EncoderControl:
     def __init__(self, remotectl: RemoteControl):
-        def sw_short():
-            asyncio.run(remotectl.handle_keypress(RemoteButton.GT_TEN))
+        self.loop = asyncio.get_event_loop()
+
+        def switch_cb():
+            asyncio.run_coroutine_threadsafe(
+                remotectl.handle_keypress(RemoteButton.GT_TEN), loop=self.loop
+            )
 
         def up_cb():
-            asyncio.run(remotectl.handle_keypress(RemoteButton.TUNE_UP, force=True))
+            asyncio.run_coroutine_threadsafe(
+                remotectl.handle_keypress(RemoteButton.TUNE_UP, force=True),
+                loop=self.loop,
+            )
 
         def down_cb():
-            asyncio.run(remotectl.handle_keypress(RemoteButton.TUNE_DOWN, force=True))
+            asyncio.run_coroutine_threadsafe(
+                remotectl.handle_keypress(RemoteButton.TUNE_DOWN, force=True),
+                loop=self.loop,
+            )
 
         self.rotary = RotaryEncoder(
             up_callback=up_cb,
             down_callback=down_cb,
-            sw_callback=sw_short,
+            sw_callback=switch_cb,
         )

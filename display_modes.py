@@ -6,8 +6,6 @@ from pathlib import Path
 from display import DisplayControl
 from song_state import SongState
 from PIL import ImageFont
-import threading
-import queue
 
 
 RESOURCES_PATH = Path(__file__).resolve().parent.joinpath("resources")
