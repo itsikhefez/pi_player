@@ -70,9 +70,14 @@ class RemoteControl:
         logging.info("started remote event listener...")
         async for event in self.device.async_read_loop():
             code = event.value
+            if code == 0:
+                continue
+
             button = self.keymap.get(code)
             if not button:
+                logging.warning(f"unrecognized remote code: {code}")
                 continue
+
             await self.handle_keypress(button)
 
     def has_tokens(self, button: int) -> bool:
@@ -96,7 +101,7 @@ class RemoteControl:
             case RemoteButton.SLEEP:
                 print("SLEEP")
             case RemoteButton.POWER:
-                await self.ctl.set_display_mode(self.ctl.image_gallery.scroll_gallery())
+                self.ctl.display_manager.scroll_display_mode()
             case RemoteButton.ONE:
                 await self.ctl.change_input(0)
             case RemoteButton.TWO:
@@ -150,4 +155,4 @@ class RemoteControl:
             case RemoteButton.MEGA_BASS:
                 await self.ctl.change_input_mode(mode=InputMode.EQ)
             case _:
-                raise Exception(f"{button} not assigned")
+                logging.error(f"{button} not assigned")

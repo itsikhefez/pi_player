@@ -9,7 +9,7 @@ from display_modes import (
     AlbumArtDisplayMode,
     ImageGalleryDisplayMode,
     VolumeDisplayMode,
-    DisplayQueue,
+    DisplayManager,
 )
 from song_state import SongState
 
@@ -49,10 +49,9 @@ class ControlState:
         self.input_mode = input_mode
         self.volume: float = -40.0
         self.dim: int = 1
-        self.display_mode = display_mode
 
     def __str__(self) -> str:
-        return f"input:{self.input.name:>7}, input_mode:{self.input_mode}, vol:{self.volume}, disp:{self.display_mode}"
+        return f"input:{self.input.name:>7}, input_mode:{self.input_mode}, vol:{self.volume}"
 
 
 class ControlConfig:
@@ -71,15 +70,13 @@ class Control:
         self,
         cwd: Path,
         config: dict,
-        display_queue: DisplayQueue,
+        display_manager: DisplayManager,
     ):
-        self.loop = asyncio.get_running_loop()
         self.pending_display_revert = None
 
-        self.display_queue = display_queue
+        self.display_manager = display_manager
         self.config = ControlConfig(config)
-        self.display_mode: DisplayMode = None
-        self.image_gallery = ImageGalleryDisplayMode(cwd, config["image_gallery"])
+        # self.image_gallery = ImageGalleryDisplayMode(cwd, config["image_gallery"])
 
         self.cdsp_client = CamillaClient("127.0.0.1", 1234)
         self.cdsp_client.connect()
@@ -121,14 +118,7 @@ class Control:
         self.cdsp_client.config.set_file_path(path)
         self.cdsp_client.general.reload()
 
-    async def revert_display_after(self, delay: int):
-        await asyncio.sleep(delay)
-        self.display_queue.put(self.display_mode)
-
     async def volume_step(self, volume_step: float, reset_dim: bool = True) -> None:
-        if self.pending_display_revert:
-            self.pending_display_revert.cancel()
-
         if reset_dim:
             self.state.dim = 1
         next_volume = round(self.state.volume + volume_step, 1)
@@ -139,11 +129,7 @@ class Control:
         logging.info("volume_step. %.2fdB", next_volume)
         self.cdsp_client.volume.set_main(next_volume)
         self.state.volume = next_volume
-        self.display_queue.put(VolumeDisplayMode(self.state.volume))
-
-        self.pending_display_revert = asyncio.run_coroutine_threadsafe(
-            coro=self.revert_display_after(5), loop=self.loop
-        )
+        self.display_manager.put_temp(VolumeDisplayMode(self.state.volume))
 
     async def volume_dim(self) -> None:
         self.state.dim = -1 * self.state.dim
@@ -156,9 +142,4 @@ class Control:
 
     async def update_song_state(self, song_state: SongState) -> None:
         logging.info("update_song_state. %s", song_state)
-        self.display_mode = AlbumArtDisplayMode(song_state)
-        self.display_queue.put(self.display_mode)
-
-    async def set_display_mode(self, display_mode: DisplayMode) -> None:
-        self.display_queue.put(display_mode)
-        self.display_mode = display_mode
+        self.display_manager.update_song_state(song_state)

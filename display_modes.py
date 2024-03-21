@@ -16,14 +16,6 @@ class DisplayMode:
         pass
 
 
-class DefaultDisplayMode(DisplayMode):
-    def __init__(self):
-        pass
-
-    def render(self, displayctl: DisplayControl):
-        pass
-
-
 class MediaPlayerDisplayMode(DisplayMode):
     font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
     default_font = ImageFont.truetype(font_path, 16)
@@ -132,3 +124,34 @@ class DisplayQueue:
             assert isinstance(mode, DisplayMode)
             mode.render(self.displayctl)
             self.q.task_done()
+
+
+class DisplayManager:
+    def __init__(self):
+        self.queue = DisplayQueue(DisplayControl())
+        self.modes = [AlbumArtDisplayMode, MediaPlayerDisplayMode]
+        self.current_index = 0
+        self.song_state = None
+        self.pending_revert = None
+
+    def new_display_mode(self) -> DisplayMode:
+        return self.modes[self.current_index](self.song_state)
+
+    def update_song_state(self, song_state: SongState):
+        self.song_state = song_state
+        self.queue.put(self.new_display_mode())
+
+    def scroll_display_mode(self):
+        self.current_index = (self.current_index + 1) % len(self.modes)
+        self.queue.put(self.new_display_mode())
+
+    def put_temp(self, mode: DisplayMode):
+        if self.pending_revert:
+            self.pending_revert.cancel()
+
+        self.queue.put(mode)
+        self.pending_revert = asyncio.create_task(coro=self.revert_display_after(2))
+
+    async def revert_display_after(self, delay: int):
+        await asyncio.sleep(delay)
+        self.queue.put(self.new_display_mode())
