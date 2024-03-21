@@ -18,20 +18,26 @@ class DisplayMode:
 
 class MediaPlayerDisplayMode(DisplayMode):
     font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
-    default_font = ImageFont.truetype(font_path, 16)
+    default_font = ImageFont.truetype(font_path, 26)
 
     def __init__(self, song_state: SongState, volume=None):
         self.song_state = song_state
         self.volume = volume
 
     def render(self, displayctl: DisplayControl):
+        def fit(s):
+            CHARS = 15
+            if len(s) <= CHARS:
+                return s
+            return f"{s:.15}"
+
         s = self.song_state
         samplerate = f"{float(s.samplerate)/1000}k" if s.samplerate else ""
         # fmt: off
         text = (
-            f"{s.artist:.16}\n"
-            f"{s.title:.16}\n"
-            f"{s.album:.16}r\n"
+            f"{s.artist:.15}\n"
+            f"{fit(s.title)}\n"
+            f"{fit(s.album)}\n"
         )
         # fmt: on
         with displayctl.get_canvas() as draw:
@@ -43,7 +49,7 @@ class MediaPlayerDisplayMode(DisplayMode):
                 align="left",
             )
             draw.text(
-                (160 - len(samplerate) * 10, 108),
+                (240 - len(samplerate) * 16, 208),
                 samplerate,
                 font=MediaPlayerDisplayMode.default_font,
                 fill="green",

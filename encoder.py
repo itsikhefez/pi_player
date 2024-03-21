@@ -62,23 +62,23 @@ class RotaryEncoder:
 
 class EncoderControl:
     def __init__(self, remotectl: RemoteControl):
-        self.loop = asyncio.get_event_loop()
+        self.main_loop = asyncio.get_event_loop()
 
         def switch_cb():
             asyncio.run_coroutine_threadsafe(
-                remotectl.handle_keypress(RemoteButton.GT_TEN), loop=self.loop
+                remotectl.handle_keypress(RemoteButton.GT_TEN), loop=self.main_loop
             )
 
         def up_cb():
             asyncio.run_coroutine_threadsafe(
                 remotectl.handle_keypress(RemoteButton.TUNE_UP, force=True),
-                loop=self.loop,
+                loop=self.main_loop,
             )
 
         def down_cb():
             asyncio.run_coroutine_threadsafe(
                 remotectl.handle_keypress(RemoteButton.TUNE_DOWN, force=True),
-                loop=self.loop,
+                loop=self.main_loop,
             )
 
         self.rotary = RotaryEncoder(

@@ -54,7 +54,7 @@ class RemoteButton(StrEnum):
 
 class RemoteControl:
     def __init__(self, config: dict, ctl: Control, mediactl: MediaPlayerControl):
-        self.button_throttle = Debounce(0.15)
+        self.button_throttle = Debounce(0.25)
         self.volume_throttle = TokenBucket(1, 0.175)
         self.device = evdev.InputDevice(config["input_device"])
         self.ctl = ctl
@@ -75,7 +75,7 @@ class RemoteControl:
 
             button = self.keymap.get(code)
             if not button:
-                logging.warning(f"unrecognized remote code: {code}")
+                logging.debug(f"unrecognized remote code: {code}")
                 continue
 
             await self.handle_keypress(button)

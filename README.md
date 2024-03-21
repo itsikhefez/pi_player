@@ -23,3 +23,14 @@ pi_player is an application that extends the use of camilladsp to a fully functi
 	* Play, pause, stop, prev track, next track.
 	* Multiple display options, such as album art image or track info (album, artist, title, bitrate)
 	* Continuously updates display with up-to-date information
+
+# Installation
+## Prerequisites
+1. Using `Raspberry Pi Imager`, install `Ubuntu Server 23.10 (64-bit)` on an SD card. RPi 4 recommended.
+
+##
+
+2. 
+
+
+## Troubleshooting

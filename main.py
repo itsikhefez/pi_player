@@ -11,11 +11,6 @@ from encoder import EncoderControl
 from remote import RemoteControl
 from squeezebox import SqueezeboxControl
 
-# TODO:
-# [] OLED display integration
-# [] streamer mode:
-#    [] song artist/title
-
 
 async def main():
     parser = argparse.ArgumentParser()
@@ -35,7 +30,7 @@ async def main():
     )
     config = yaml.safe_load(config_path.read_text())
 
-    ctl = Control(cwd, config, DisplayManager())
+    ctl = Control(cwd, config)
     squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
     remotectl = RemoteControl(config["remote"], ctl, mediactl=squeezectl)
     EncoderControl(remotectl)

@@ -70,11 +70,10 @@ class Control:
         self,
         cwd: Path,
         config: dict,
-        display_manager: DisplayManager,
     ):
         self.pending_display_revert = None
 
-        self.display_manager = display_manager
+        self.display_manager = DisplayManager()
         self.config = ControlConfig(config)
         # self.image_gallery = ImageGalleryDisplayMode(cwd, config["image_gallery"])
 
