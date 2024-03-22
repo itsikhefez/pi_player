@@ -28,7 +28,7 @@ pi_player is an application that extends the use of camilladsp to a fully functi
 
 ## Prerequisites
 ### Initial RPi installation
-> Credits to @mdsimon2 on providing detailed instructions in this this [ASR thread](https://www.audiosciencereview.com/forum/index.php?threads/rpi4-camilladsp-tutorial.29656/)
+> Credits to @mdsimon2 on providing detailed instructions in this [ASR thread](https://www.audiosciencereview.com/forum/index.php?threads/rpi4-camilladsp-tutorial.29656/)
 1. Using `Raspberry Pi Imager`, install `Ubuntu Server 23.10 (64-bit)` on an SD card. RPi 4 recommended.
 2. Install SD card, power up RPi and start a terminal.
 3. Update RPi and install packages
