@@ -3,3 +3,4 @@ __pycache__/
 *.code-workspace
 img-tmp
 resources/*.jpg
+config.main.yaml

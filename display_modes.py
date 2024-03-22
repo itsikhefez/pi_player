@@ -68,7 +68,7 @@ class MediaPlayerDisplayMode(DisplayMode):
 
 class VolumeDisplayMode(DisplayMode):
     font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
-    default_font = ImageFont.truetype(font_path, 72)
+    default_font = ImageFont.truetype(font_path, 36)
 
     def __init__(self, volume: float):
         self.volume = volume
@@ -92,7 +92,7 @@ class AlbumArtDisplayMode(DisplayMode):
 
     def render(self, displayctl: DisplayControl):
         try:
-            img_tmp_path = "img-tmp"
+            img_tmp_path = "/tmp/img-tmp"
             urllib.request.urlretrieve(self.url, img_tmp_path)
             displayctl.show_image(path=img_tmp_path)
         except Exception as e:
@@ -123,13 +123,17 @@ class DisplayQueue:
 
     async def refresh_loop(self):
         while True:
-            mode = await self.q.get()
-            while not self.q.empty():
-                mode = await self.q.get()
+            try:
+                async with asyncio.timeout(30):
+                    mode = await self.q.get()
+                    while not self.q.empty():
+                        mode = await self.q.get()
 
-            assert isinstance(mode, DisplayMode)
-            mode.render(self.displayctl)
-            self.q.task_done()
+                    assert isinstance(mode, DisplayMode)
+                    mode.render(self.displayctl)
+                    self.q.task_done()
+            except TimeoutError:
+                self.displayctl.clear()
 
 
 class DisplayManager:

@@ -1,7 +1,7 @@
 from PIL import Image, ImageOps
 from luma.core.render import canvas
 from luma.core.interface.serial import spi
-from luma.lcd.device import st7789, st7735
+from luma.oled.device import ssd1351
 
 
 class DisplayControl:
@@ -9,18 +9,23 @@ class DisplayControl:
         serial = spi(
             gpio_DC=23,
             gpio_RST=24,
-            bus_speed_hz=52000000,
+            bus_speed_hz=16000000,
         )
-        self.device = st7789(serial_interface=serial, active_low=False)
+        self.device = ssd1351(serial_interface=serial, bgr=True)
+        self.device.contrast(128)
 
     def close(self):
         self.device.cleanup()
+
+    def clear(self):
+        self.device.clear()
 
     def display_size(self):
         return self.device.size
 
     def show_image(self, path: str, stretch=False) -> None:
         image = Image.open(path, formats=["JPEG", "PNG"]).convert("RGB")
+
         if not stretch:
             image = ImageOps.pad(
                 ImageOps.contain(image, self.display_size()), self.display_size()

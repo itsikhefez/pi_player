@@ -30,17 +30,21 @@ async def main():
     )
     config = yaml.safe_load(config_path.read_text())
 
-    ctl = Control(cwd, config)
-    squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
-    remotectl = RemoteControl(config["remote"], ctl, mediactl=squeezectl)
-    EncoderControl(remotectl)
+    try:
+        ctl = Control(cwd, config)
+        squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
+        remotectl = RemoteControl(config["remote"], ctl, mediactl=squeezectl)
+        EncoderControl(remotectl)
 
-    await asyncio.gather(
-        squeezectl.refresh_loop(),
-        remotectl.refresh_loop(),
-        ctl.display_manager.queue.refresh_loop(),
-    )
-    ctl.display_manager.queue.displayctl.close()
+        await asyncio.gather(
+            squeezectl.refresh_loop(),
+            remotectl.refresh_loop(),
+            ctl.display_manager.queue.refresh_loop(),
+        )
+    except asyncio.exceptions.CancelledError:
+        pass
+    finally:
+        ctl.display_manager.queue.displayctl.close()
 
 
 if __name__ == "__main__":
