@@ -44,7 +44,8 @@ async def main():
     except asyncio.exceptions.CancelledError:
         pass
     finally:
-        ctl.display_manager.queue.displayctl.close()
+        if ctl:
+            ctl.display_manager.queue.displayctl.close()
 
 
 if __name__ == "__main__":

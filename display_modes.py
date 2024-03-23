@@ -3,7 +3,7 @@ import logging
 import urllib.request
 from typing import List
 from pathlib import Path
-from display import DisplayControl
+from display import DisplayControl, DisplayType
 from song_state import SongState
 from PIL import ImageFont
 
@@ -138,7 +138,7 @@ class DisplayQueue:
 
 class DisplayManager:
     def __init__(self):
-        self.queue = DisplayQueue(DisplayControl())
+        self.queue = DisplayQueue(DisplayControl(type=DisplayType.OLED))
         self.modes = [AlbumArtDisplayMode, MediaPlayerDisplayMode]
         self.current_index = 0
         self.song_state = None

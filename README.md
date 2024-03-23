@@ -137,19 +137,37 @@ cd pigpio-master
 make
 sudo make install
 ```
-Run: `sudo pigpiod`
-<!-- TODO: add instructions to do this on startup -->
+4. Create service `sudo nano /lib/systemd/system/pigpiod.service`
+```
+[Unit]
+Description=Daemon required to control GPIO pins via pigpio
+
+[Service]
+ExecStart=/usr/local/bin/pigpiod -l
+ExecStop=/bin/systemctl kill pigpiod
+Type=forking
+
+[Install]
+WantedBy=multi-user.target
+```
+4.1 Enable and start
+```
+sudo systemctl enable -- pigpiod
+sudo service pigpiod start
+```
 
 ## pi_player
 ### Setup IR reciever
 1. Configure device with `sudo nano /boot/firmware/config.txt`
-
 ```
 # Add to end of file. GPIO should match the output pin of the IR receiver
 dtoverlay=gpio-ir,gpio_pin=22
 ```
-
-2. Reboot `sudo reboot`
+2. Fix permissions on reboot to allow access to GPIO. `sudo crontab -e`
+```
+@reboot chown root:gpio /dev/gpiomem && chmod g+rw /dev/gpiomem
+```
+3. Reboot `sudo reboot`
 
 ### Download
 1. Clone the repo and install dependencies
@@ -163,18 +181,42 @@ git clone https://github.com/itsikhefez/pi_player.git ~/src/pi_player
 cp config.yaml config.main.yaml
 ```
 
-3. Run:
+3. Create service
+3.1 `sudo nano /lib/systemd/system/pi_player.service`
 ```
-~/venv/bin/python ~/src/pi_player/main.py --log INFO --config-path ~/src/pi_player/config.main.yaml
+[Unit]
+After=syslog.target
+Requires=pigpiod.service
+StartLimitIntervalSec=10
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=pi_player
+WorkingDirectory=~
+ExecStart=/home/pi_player/venv/bin/python src/pi_player/main.py --log INFO --config-path src/pi_player/config.main.yaml
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pi_player
+
+[Install]
+WantedBy=multi-user.target
 ```
+3.2 Enable and start
+```
+sudo systemctl enable -- pi_player
+sudo service pi_player start
+```
+
 
 ## Troubleshooting
 
 ### RuntimeError: No access to /dev/mem.  Try running as root!
-<!-- TODO: add instructions to do this on startup -->
+Fix permissions on startup. `sudo crontab -e`
 ```
-sudo chown root:gpio /dev/gpiomem
-sudo chmod g+rw /dev/gpiomem
+@reboot chown root:gpio /dev/gpiomem && chmod g+rw /dev/gpiomem
 ```
 
 ### FileNotFoundError: [Errno 2] No such file or directory: '/dev/input/event0'
@@ -189,5 +231,5 @@ gpio_ir_recv           12288  0
 ### Remote not receiving events
 * Ensure the correct protocol is enabled.
 * Run `ir-keytable -c -p all -t` to test which protocol the remote is using.
-* Run `sudo ir-keytable -p <protocol>` to enable correct protocol on next boot.
+* Add `ir-keytable -p <protocol>` to `sudo crontab -e`
 <!-- TODO: add instructions to do this on startup -->

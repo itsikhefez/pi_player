@@ -1,18 +1,37 @@
+from enum import Enum, auto
 from PIL import Image, ImageOps
 from luma.core.render import canvas
 from luma.core.interface.serial import spi
 from luma.oled.device import ssd1351
+from luma.lcd.device import st7789
+
+
+class DisplayType(Enum):
+    LCD = auto()
+    OLED = auto()
 
 
 class DisplayControl:
-    def __init__(self):
-        serial = spi(
-            gpio_DC=23,
-            gpio_RST=24,
-            bus_speed_hz=16000000,
-        )
-        self.device = ssd1351(serial_interface=serial, bgr=True)
-        self.device.contrast(128)
+    def __init__(
+        self,
+        type: DisplayType = DisplayType.LCD,
+    ):
+        if type == DisplayType.OLED:
+            serial = spi(
+                gpio_DC=23,
+                gpio_RST=24,
+                bus_speed_hz=16000000,
+            )
+            device = ssd1351(serial_interface=serial, bgr=True)
+            device.contrast(128)
+        else:
+            serial = spi(
+                gpio_DC=23,
+                gpio_RST=24,
+                bus_speed_hz=52000000,
+            )
+            device = st7789(serial_interface=serial, active_low=False)
+        self.device = device
 
     def close(self):
         self.device.cleanup()
