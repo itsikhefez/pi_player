@@ -181,8 +181,7 @@ git clone https://github.com/itsikhefez/pi_player.git ~/src/pi_player
 cp config.yaml config.main.yaml
 ```
 
-3. Create service
-3.1 `sudo nano /lib/systemd/system/pi_player.service`
+3. Create service `sudo nano /lib/systemd/system/pi_player.service`
 ```
 [Unit]
 After=syslog.target
@@ -192,9 +191,9 @@ StartLimitBurst=10
 
 [Service]
 Type=simple
-User=pi_player
+User=<username>
 WorkingDirectory=~
-ExecStart=/home/pi_player/venv/bin/python src/pi_player/main.py --log INFO --config-path src/pi_player/config.main.yaml
+ExecStart=/home/<username>/venv/bin/python src/pi_player/main.py --log INFO --config-path src/pi_player/config.main.yaml
 Restart=always
 RestartSec=3
 StandardOutput=journal
@@ -204,7 +203,8 @@ SyslogIdentifier=pi_player
 [Install]
 WantedBy=multi-user.target
 ```
-3.2 Enable and start
+
+4. Enable and start
 ```
 sudo systemctl enable -- pi_player
 sudo service pi_player start

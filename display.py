@@ -14,7 +14,7 @@ class DisplayType(Enum):
 class DisplayControl:
     def __init__(
         self,
-        type: DisplayType = DisplayType.LCD,
+        type: DisplayType = DisplayType.OLED,
     ):
         if type == DisplayType.OLED:
             serial = spi(
@@ -23,7 +23,7 @@ class DisplayControl:
                 bus_speed_hz=16000000,
             )
             device = ssd1351(serial_interface=serial, bgr=True)
-            device.contrast(128)
+            device.contrast(192)
         else:
             serial = spi(
                 gpio_DC=23,

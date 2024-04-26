@@ -3,7 +3,7 @@ image_gallery: []
 squeezebox:
   lms_server_ip: "192.168.1.90"
   polling_sleep: 1
-  client_name: "ubuntu-dev"
+  client_name: "Office"
 inputs:
   # Inputs are expected as lists of length 3 in order of
   # Default, EQ, EQ_ALT
@@ -21,8 +21,8 @@ inputs:
     - ucx2_streamer_44c_44p.yaml
   Digital:
     - ucx2_streamer_44c_44p.yaml
-    - ucx2_streamer_44c_44p.yaml
-    - ucx2_streamer_44c_44p.yaml
+    - ucx2_streamer_44c_44p-eq.yaml
+    - ucx2_streamer_44c_44p-eq_alt.yaml
   Karaoke:
     - ucx2_streamer_44c_44p.yaml
     - ucx2_streamer_44c_44p.yaml

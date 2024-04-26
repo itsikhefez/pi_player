@@ -124,7 +124,7 @@ class DisplayQueue:
     async def refresh_loop(self):
         while True:
             try:
-                async with asyncio.timeout(30):
+                async with asyncio.timeout(600):
                     mode = await self.q.get()
                     while not self.q.empty():
                         mode = await self.q.get()

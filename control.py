@@ -88,6 +88,7 @@ class Control:
                 if cdsp_config_path == filepath:
                     current_input = input
                     input_mode = InputMode(j)
+                    break
 
         assert current_input is not None, f"invalid input file {cdsp_config_path}"
 
