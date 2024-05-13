@@ -35,7 +35,7 @@ pi_player is an application that extends the use of camilladsp to a fully functi
 ```
 sudo apt update
 sudo apt full-upgrade
-sudo apt install -- alsa-utils linux-modules-extra-raspi python3 python3-pip python3-venv python3-dev unzip ir-keytable
+sudo apt install -- alsa-utils linux-modules-extra-raspi python3 python3-pip python3-venv python3-dev unzip ir-keytable libjpeg-dev
 ```
 
 ### CamillaDSP
