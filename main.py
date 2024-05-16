@@ -20,16 +20,17 @@ async def main():
         help="sets logging level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
     )
-    parser.add_argument("--config-path", help="path to config file")
+    parser.add_argument("--config-file", help="path to config file")
     args = parser.parse_args()
     logging.basicConfig(level=args.log)
 
     cwd = Path(__file__).resolve().parent
-    config_path = (
-        Path(args.config_path) if args.config_path else cwd.joinpath("config.yaml")
+    config_file = (
+        Path(args.config_file) if args.config_file else cwd.joinpath("config.yaml")
     )
-    config = yaml.safe_load(config_path.read_text())
+    config = yaml.safe_load(config_file.read_text())
 
+    ctl = None
     try:
         ctl = Control(cwd, config)
         squeezectl = SqueezeboxControl(config["squeezebox"], ctl)

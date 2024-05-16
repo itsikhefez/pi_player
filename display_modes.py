@@ -68,21 +68,29 @@ class MediaPlayerDisplayMode(DisplayMode):
 
 class VolumeDisplayMode(DisplayMode):
     font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
-    default_font = ImageFont.truetype(font_path, 36)
+    vol_font = ImageFont.truetype(font_path, 96)
+    db_font = ImageFont.truetype(font_path, 72)
 
     def __init__(self, volume: float):
-        self.volume = volume
+        if volume > -10.0:
+            self.volume = str(volume)
+        else:
+            self.volume = f"{int(volume)}{'' if volume.is_integer() else '.'}"
 
     def render(self, displayctl: DisplayControl):
         with displayctl.get_canvas() as draw:
             draw.text(
-                (10, 10),
-                f"{self.volume:5}\ndB",
-                font=VolumeDisplayMode.default_font,
+                (0, 5),
+                f"{self.volume}",
+                font=VolumeDisplayMode.vol_font,
                 fill="white",
-                align="right",
             )
-
+            draw.text(
+                (120, 120),
+                f"dB",
+                font=VolumeDisplayMode.db_font,
+                fill="white",
+            )
 
 class AlbumArtDisplayMode(DisplayMode):
     default_image = str(RESOURCES_PATH.joinpath("default_album_art.png"))
@@ -138,7 +146,7 @@ class DisplayQueue:
 
 class DisplayManager:
     def __init__(self):
-        self.queue = DisplayQueue(DisplayControl(type=DisplayType.OLED))
+        self.queue = DisplayQueue(DisplayControl(type=DisplayType.LCD))
         self.modes = [AlbumArtDisplayMode, MediaPlayerDisplayMode]
         self.current_index = 0
         self.song_state = None
