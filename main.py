@@ -32,7 +32,7 @@ async def main():
 
     ctl = None
     try:
-        ctl = Control(cwd, config)
+        ctl = Control(config)
         squeezectl = SqueezeboxControl(config["squeezebox"], ctl)
         remotectl = RemoteControl(config["remote"], ctl, mediactl=squeezectl)
         EncoderControl(remotectl)

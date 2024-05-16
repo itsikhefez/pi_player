@@ -3,6 +3,7 @@ import logging
 import urllib.request
 from typing import List
 from pathlib import Path
+from control_state import ControlState, InputMode
 from display import DisplayControl, DisplayType
 from song_state import SongState
 from PIL import ImageFont
@@ -92,6 +93,7 @@ class VolumeDisplayMode(DisplayMode):
                 fill="white",
             )
 
+
 class AlbumArtDisplayMode(DisplayMode):
     default_image = str(RESOURCES_PATH.joinpath("default_album_art.png"))
 
@@ -119,6 +121,48 @@ class ImageGalleryDisplayMode(DisplayMode):
     def scroll_gallery(self) -> DisplayMode:
         self.gallery_index = (self.gallery_index + 1) % len(self.image_gallery)
         return self
+
+
+class InputDisplayMode(DisplayMode):
+    font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
+    input_font = ImageFont.truetype(font_path, 54)
+
+    def __init__(self, state: ControlState):
+        self.state = state
+
+    def render(self, displayctl: DisplayControl):
+        with displayctl.get_canvas() as draw:
+            draw.text(
+                (0, 20),
+                f"{self.state.input.name}",
+                font=InputDisplayMode.input_font,
+                fill="white",
+            )
+            outline_width = 5
+            left = 170
+            bottom = 230
+            match self.state.input_mode:
+                case InputMode.EQ:
+                    draw.ellipse(
+                        (left, bottom - 60, left + 60, bottom),
+                        fill="blue",
+                        outline="magenta",
+                        width=outline_width,
+                    )
+                case InputMode.EQ_ALT:
+                    draw.polygon(
+                        (left, bottom, left + 60, bottom, left + 30, bottom - 60),
+                        fill="red",
+                        outline="brown",
+                        width=outline_width,
+                    )
+                case _:
+                    draw.rectangle(
+                        (left, bottom - 60, left + 60, bottom),
+                        fill="green",
+                        outline="cyan",
+                        width=outline_width,
+                    )
 
 
 class DisplayQueue:

@@ -1,57 +1,18 @@
-import asyncio
 import logging
-from pathlib import Path
 from typing import List
-from enum import Enum
 from camilladsp import CamillaClient
+from control_state import ControlState, Input, InputMode
 from display_modes import (
-    DisplayMode,
-    AlbumArtDisplayMode,
-    ImageGalleryDisplayMode,
     VolumeDisplayMode,
     DisplayManager,
+    InputDisplayMode,
 )
 from song_state import SongState
-
-
-class InputMode(Enum):
-    DIRECT = 0
-    EQ = 1
-    EQ_ALT = 2
-
-
-class Input:
-    name: str
-    configs: List[str]
-
-    def __init__(self, index, name, configs):
-        self.index = index
-        self.name = name
-        self.configs = configs
-
-    def __str__(self) -> str:
-        return f"{self.name}->{self.configs}"
 
 
 MIN_VOLUME: float = -80.0
 MAX_VOLUME: float = 0.0
 DIM_STEP: float = 20.0
-
-
-class ControlState:
-    def __init__(
-        self,
-        input: Input,
-        input_mode: InputMode,
-        display_mode: DisplayMode | None = None,
-    ):
-        self.input = input
-        self.input_mode = input_mode
-        self.volume: float = -40.0
-        self.dim: int = 1
-
-    def __str__(self) -> str:
-        return f"input:{self.input.name:>7}, input_mode:{self.input_mode}, vol:{self.volume}"
 
 
 class ControlConfig:
@@ -68,14 +29,12 @@ class ControlConfig:
 class Control:
     def __init__(
         self,
-        cwd: Path,
         config: dict,
     ):
         self.pending_display_revert = None
 
         self.display_manager = DisplayManager()
         self.config = ControlConfig(config)
-        # self.image_gallery = ImageGalleryDisplayMode(cwd, config["image_gallery"])
 
         self.cdsp_client = CamillaClient("127.0.0.1", 1234)
         self.cdsp_client.connect()
@@ -117,6 +76,7 @@ class Control:
         logging.info("apply_input_state. %s. %s", self.state, path)
         self.cdsp_client.config.set_file_path(path)
         self.cdsp_client.general.reload()
+        self.display_manager.put_temp(InputDisplayMode(self.state))
 
     async def volume_step(self, volume_step: float, reset_dim: bool = True) -> None:
         if reset_dim:
