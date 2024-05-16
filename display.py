@@ -14,7 +14,7 @@ class DisplayType(Enum):
 class DisplayControl:
     def __init__(
         self,
-        type: DisplayType = DisplayType.OLED,
+        type: DisplayType,
     ):
         if type == DisplayType.OLED:
             serial = spi(

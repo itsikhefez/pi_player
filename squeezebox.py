@@ -18,7 +18,7 @@ class SqueezeboxConfig(NamedTuple):
 class SqueezeboxControl:
     def __init__(self, config: dict, ctl: Control) -> None:
         self.ctl = ctl
-        self.pending: MediaPlayerOp = None
+        self.pending: MediaPlayerOp | None = None
         self.cond = asyncio.Condition()
         self.curr_song_state = SongState()
         self.config = SqueezeboxConfig(
@@ -97,6 +97,7 @@ class SqueezeboxControl:
                 if not player:
                     logging.warning("squeezebox player not found. retrying...")
                     await asyncio.sleep(1)
+                    
             logging.info("started squeezebox listener...")
             while True:
                 for coro in asyncio.as_completed(

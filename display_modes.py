@@ -116,7 +116,9 @@ class ImageGalleryDisplayMode(DisplayMode):
         self.gallery_index = 0
 
     def render(self, displayctl: DisplayControl):
-        displayctl.show_image(path=self.image_gallery[self.gallery_index], stretch=True)
+        displayctl.show_image(
+            path=str(self.image_gallery[self.gallery_index]), stretch=True
+        )
 
     def scroll_gallery(self) -> DisplayMode:
         self.gallery_index = (self.gallery_index + 1) % len(self.image_gallery)
@@ -125,7 +127,8 @@ class ImageGalleryDisplayMode(DisplayMode):
 
 class InputDisplayMode(DisplayMode):
     font_path = str(RESOURCES_PATH.joinpath("Hack-Regular.ttf"))
-    input_font = ImageFont.truetype(font_path, 54)
+    input_font = ImageFont.truetype(font_path, 72)
+    vol_font = ImageFont.truetype(font_path, 36)
 
     def __init__(self, state: ControlState):
         self.state = state
@@ -134,10 +137,17 @@ class InputDisplayMode(DisplayMode):
         with displayctl.get_canvas() as draw:
             draw.text(
                 (0, 20),
-                f"{self.state.input.name}",
+                f"{self.state.input.name}"[:5],
                 font=InputDisplayMode.input_font,
                 fill="white",
             )
+            draw.text(
+                (0, 190),
+                f"{self.state.volume}",
+                font=InputDisplayMode.vol_font,
+                fill="white",
+            )
+
             outline_width = 5
             left = 170
             bottom = 230
@@ -168,7 +178,7 @@ class InputDisplayMode(DisplayMode):
 class DisplayQueue:
     def __init__(self, displayctl: DisplayControl):
         self.displayctl = displayctl
-        self.q = asyncio.Queue()
+        self.q: asyncio.Queue = asyncio.Queue()
 
     def put(self, mode: DisplayMode):
         self.q.put_nowait(mode)
@@ -191,21 +201,12 @@ class DisplayQueue:
 class DisplayManager:
     def __init__(self):
         self.queue = DisplayQueue(DisplayControl(type=DisplayType.LCD))
-        self.modes = [AlbumArtDisplayMode, MediaPlayerDisplayMode]
-        self.current_index = 0
-        self.song_state = None
         self.pending_revert = None
+        self.current = None
 
-    def new_display_mode(self) -> DisplayMode:
-        return self.modes[self.current_index](self.song_state)
-
-    def update_song_state(self, song_state: SongState):
-        self.song_state = song_state
-        self.queue.put(self.new_display_mode())
-
-    def scroll_display_mode(self):
-        self.current_index = (self.current_index + 1) % len(self.modes)
-        self.queue.put(self.new_display_mode())
+    def put(self, mode: DisplayMode):
+        self.current = mode
+        self.queue.put(mode)
 
     def put_temp(self, mode: DisplayMode):
         if self.pending_revert:
@@ -216,4 +217,4 @@ class DisplayManager:
 
     async def revert_display_after(self, delay: int):
         await asyncio.sleep(delay)
-        self.queue.put(self.new_display_mode())
+        self.queue.put(self.current)

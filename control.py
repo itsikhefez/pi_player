@@ -6,6 +6,7 @@ from display_modes import (
     VolumeDisplayMode,
     DisplayManager,
     InputDisplayMode,
+    AlbumArtDisplayMode,
 )
 from song_state import SongState
 
@@ -31,8 +32,6 @@ class Control:
         self,
         config: dict,
     ):
-        self.pending_display_revert = None
-
         self.display_manager = DisplayManager()
         self.config = ControlConfig(config)
 
@@ -52,7 +51,9 @@ class Control:
         assert current_input is not None, f"invalid input file {cdsp_config_path}"
 
         self.state = ControlState(current_input, input_mode)
+        self.display_manager.put(InputDisplayMode(self.state))
         self.cdsp_client.volume.set_main(self.state.volume)
+        self.song_state: SongState | None = None
         logging.info("cdsp connected. %s", self.state)
 
     async def change_input_mode(self, mode: InputMode) -> None:
@@ -76,7 +77,10 @@ class Control:
         logging.info("apply_input_state. %s. %s", self.state, path)
         self.cdsp_client.config.set_file_path(path)
         self.cdsp_client.general.reload()
-        self.display_manager.put_temp(InputDisplayMode(self.state))
+        if self.state.input.name == "Digital" and self.song_state:
+            self.display_manager.put(AlbumArtDisplayMode(self.song_state))
+        else:
+            self.display_manager.put(InputDisplayMode(self.state))
 
     async def volume_step(self, volume_step: float, reset_dim: bool = True) -> None:
         if reset_dim:
@@ -102,4 +106,7 @@ class Control:
 
     async def update_song_state(self, song_state: SongState) -> None:
         logging.info("update_song_state. %s", song_state)
-        self.display_manager.update_song_state(song_state)
+        self.song_state = song_state
+
+        if self.state.input.name == "Digital":
+            self.display_manager.put(AlbumArtDisplayMode(song_state))

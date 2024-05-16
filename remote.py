@@ -101,7 +101,7 @@ class RemoteControl:
             case RemoteButton.SLEEP:
                 print("SLEEP")
             case RemoteButton.POWER:
-                self.ctl.display_manager.scroll_display_mode()
+                print("POWER")
             case RemoteButton.ONE:
                 await self.ctl.change_input(0)
             case RemoteButton.TWO:
